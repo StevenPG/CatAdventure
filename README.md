@@ -29,12 +29,16 @@ it runs immediately after `npm install`.
 | Attack          | `J`                                                   |
 | Special         | `K` (hold for glide-type abilities)                   |
 | **Switch cat**  | `Tab` (forward) / `Shift+Tab` (back), or click a face |
-| Back to menu    | `Esc`                                                 |
+| Pause           | `Esc` / `P` (then `M` for level select)               |
 | Pick level      | `1`–`9` on the level select                           |
 
 Stomp enemies from above **or** hit them with attacks, projectiles, or a
 ground-slam. Collect treats. Reach the green exit to clear the level. Progress
 is saved to `localStorage`.
+
+There's no game-over screen: if you run out of health or fall into a pit, the
+camera gently scrolls back to the start of the level, health refills, and any
+treats you already collected stay collected.
 
 ## Architecture
 

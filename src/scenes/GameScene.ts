@@ -33,6 +33,7 @@ export class GameScene extends Phaser.Scene implements GameWorld {
   private collected = 0;
   private total = 0;
   private finished = false;
+  private respawning = false;
 
   private keys!: {
     left: Phaser.Input.Keyboard.Key;
@@ -55,12 +56,16 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.level = LEVELS[this.levelIndex];
     this.collected = 0;
     this.finished = false;
+    this.respawning = false;
     this.enemies = [];
   }
 
   create(): void {
     this.physics.world.gravity.y = PHYSICS.gravityY;
     this.physics.world.setBounds(0, 0, this.level.width, this.level.height);
+    // Open the bottom edge so pits are real falls (triggers the soft respawn).
+    // Left/right/top still contain the player.
+    this.physics.world.setBoundsCollision(true, true, true, false);
     this.cameras.main.setBounds(0, 0, this.level.width, this.level.height);
     this.cameras.main.setBackgroundColor(COLORS.background);
 
@@ -171,7 +176,14 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     kb.on('keydown-TAB', (e: KeyboardEvent) => {
       this.catManager.cycle(e.shiftKey ? -1 : 1);
     });
-    kb.on('keydown-ESC', () => this.exitToSelect());
+    kb.on('keydown-ESC', () => this.pauseGame());
+    kb.on('keydown-P', () => this.pauseGame());
+  }
+
+  private pauseGame(): void {
+    if (this.finished || this.respawning) return;
+    this.scene.launch('Pause');
+    this.scene.pause();
   }
 
   // --- GameWorld implementation (used by abilities) ---
@@ -219,7 +231,8 @@ export class GameScene extends Phaser.Scene implements GameWorld {
       // knockback away from the enemy
       const away = this.player.sprite.x < enemySprite.x ? -1 : 1;
       playerBody.setVelocity(away * 260, -260);
-      this.checkDeath();
+      this.emitHud();
+      if (this.player.health <= 0) this.respawnToStart();
     }
   }
 
@@ -246,12 +259,47 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.time.delayedCall(1800, () => this.exitToSelect());
   }
 
-  private checkDeath(): void {
-    if (this.player.health > 0) return;
-    this.finished = true;
-    SaveManager.get().recordLevel(this.level.id, this.levelIndex, this.collected, false);
-    this.showBanner('Out of lives!', 0xef7d57);
-    this.time.delayedCall(1600, () => this.scene.restart({ levelIndex: this.levelIndex }));
+  /** Soft "death": no game-over. Show a gentle message, then scroll the camera
+   *  back to the level start with the cat reset there and health refilled.
+   *  Treats already collected stay collected. */
+  private respawnToStart(): void {
+    if (this.respawning || this.finished) return;
+    this.respawning = true;
+
+    const body = this.player.body;
+    body.setVelocity(0, 0);
+    body.setAllowGravity(false);
+
+    const cam = this.cameras.main;
+    const msg = this.add
+      .text(cam.width / 2, cam.height / 2, "Let's try that again 🐾", {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '30px',
+        color: '#ffffff',
+        backgroundColor: '#1a1c2c',
+        padding: { x: 18, y: 10 },
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(1000)
+      .setAlpha(0);
+    this.tweens.add({ targets: msg, alpha: 1, duration: 200 });
+
+    // Beat to read the message, then scroll back to the start.
+    this.time.delayedCall(850, () => {
+      cam.stopFollow();
+      this.player.sprite.setPosition(this.level.spawn.x, this.level.spawn.y);
+      this.player.resetHealth();
+      this.emitHud();
+      cam.pan(this.level.spawn.x, this.level.spawn.y, 850, 'Sine.easeInOut');
+      cam.once(Phaser.Cameras.Scene2D.Events.PAN_COMPLETE, () => {
+        cam.startFollow(this.player.sprite, true, 0.12, 0.12);
+        body.setAllowGravity(true);
+        this.player.makeInvulnerable(900);
+        this.tweens.add({ targets: msg, alpha: 0, duration: 300, delay: 150, onComplete: () => msg.destroy() });
+        this.respawning = false;
+      });
+    });
   }
 
   private showBanner(text: string, color: number): void {
@@ -284,7 +332,7 @@ export class GameScene extends Phaser.Scene implements GameWorld {
   // --- Main loop ---
 
   override update(time: number, delta: number): void {
-    if (this.finished) return;
+    if (this.finished || this.respawning) return;
     const k = this.keys;
 
     let dir: -1 | 0 | 1 = 0;
@@ -306,13 +354,9 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.player.update(time, delta);
     for (const enemy of this.enemies) enemy.update();
 
-    // Fell off the world.
+    // Fell off the world — scroll back to the start.
     if (this.player.sprite.y > this.level.height + 160) {
-      if (this.player.takeDamage(time)) {
-        this.player.sprite.setPosition(this.level.spawn.x, this.level.spawn.y);
-        this.player.body.setVelocity(0, 0);
-        this.checkDeath();
-      }
+      this.respawnToStart();
     }
 
     this.emitHud();

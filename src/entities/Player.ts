@@ -26,7 +26,8 @@ export class Player {
   private slamActive = false;
   private slamRadius = 0;
   private specialHeld = false;
-  health = 9;
+  readonly maxHealth = 9;
+  health = this.maxHealth;
 
   constructor(
     private readonly world: GameWorld,
@@ -162,6 +163,17 @@ export class Player {
 
   bounceOffEnemy(): void {
     this.body.setVelocityY(-COMBAT.stompBounce);
+  }
+
+  /** Refill to full and restore normal appearance (used on soft respawn). */
+  resetHealth(): void {
+    this.health = this.maxHealth;
+    this.sprite.setTint(this.cat.bodyColor);
+    this.sprite.setAlpha(1);
+  }
+
+  makeInvulnerable(ms: number): void {
+    this.invulnUntil = this.world.time.now + ms;
   }
 
   private flashAttack(cx: number): void {

@@ -93,7 +93,7 @@ export class LevelSelectScene extends Phaser.Scene {
     });
 
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 40, 'Move: ← → / A D   Jump: ↑ / W / Space   Attack: J   Special: K   Switch cat: Tab', {
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 40, 'Move: ← → / A D   Jump: ↑ / W / Space   Attack: J   Special: K   Switch cat: Tab   Pause: Esc / P', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '15px',
         color: '#73849c',
