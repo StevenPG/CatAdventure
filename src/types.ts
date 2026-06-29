@@ -6,6 +6,7 @@ import type { Player } from './entities/Player';
 export type AbilityId =
   | 'none'
   | 'dash'
+  | 'dash-strike'
   | 'ground-slam'
   | 'projectile'
   | 'air-glide';
@@ -28,6 +29,9 @@ export interface CatStats {
   extraJumps: number;
   /** Width of the melee attack hitbox (px). "Longer reach" cats raise this. */
   attackReach: number;
+  /** Melee damage per swipe. Defaults to TUNING.combat.attackDamage when unset.
+   *  "Hits hard" cats raise this. */
+  attackDamage?: number;
 }
 
 /** Sound keys the AudioManager will play. These are stubbed for now; drop real
@@ -53,6 +57,8 @@ export interface CatDefinition {
   /** Spritesheet texture key (see config/assets.ts SHEETS). Defaults to the
    *  shared 'cat' placeholder. Set per-cat once real art is added. */
   spriteSheet?: string;
+  /** Visual size multiplier. >1 = bigger cat, <1 = smaller. Defaults to 1. */
+  scale?: number;
   stats: CatStats;
   ability: AbilityId;
   effect: EffectId;

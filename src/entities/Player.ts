@@ -27,6 +27,7 @@ export class Player {
   private invulnUntil = 0;
   private dashUntil = 0;
   private dashVelX = 0;
+  private dashDamage = 0;
   private slamActive = false;
   private slamRadius = 0;
   private specialHeld = false;
@@ -61,12 +62,30 @@ export class Player {
     this.ability = createAbility(def.ability);
     this.animPrefix = def.spriteSheet ?? PLAYER_TEXTURE;
     this.sprite.setTexture(this.animPrefix);
+    this.sprite.setScale(def.scale ?? 1);
+    this.resizeBody(def.scale ?? 1);
     this.sprite.setTint(def.bodyColor);
     // Reset transient ability state on swap.
     this.dashUntil = 0;
     this.slamActive = false;
     this.playAnim('idle');
     this.audio.play(def.sounds.select ?? 'sfx-select');
+  }
+
+  /** Constant world-space collision box (px), centered at the sprite's feet.
+   *  Kept the same for every cat regardless of visual scale: Arcade scales a
+   *  body with the sprite, and rescaling a resting body can eject it through
+   *  static floors. Counter-scaling the source size keeps the world hitbox
+   *  fixed (and platforming forgiving). */
+  private static readonly HITBOX = { w: 30, h: 42 };
+
+  private resizeBody(scale: number): void {
+    const fw = this.sprite.width;
+    const fh = this.sprite.height;
+    const bw = Player.HITBOX.w / scale;
+    const bh = Player.HITBOX.h / scale;
+    this.body.setSize(bw, bh);
+    this.body.setOffset((fw - bw) / 2, fh - bh);
   }
 
   setSpecialHeld(held: boolean): void {
@@ -113,8 +132,9 @@ export class Player {
     this.attackAnimUntil = now + TUNING.combat.attackDurationMs;
     this.playAnim('attack', false);
     const reach = this.stats.attackReach;
+    const damage = this.stats.attackDamage ?? TUNING.combat.attackDamage;
     const cx = this.sprite.x + this.facing * (reach * 0.5);
-    this.world.damageEnemiesInRadius(cx, this.sprite.y, reach * 0.55, TUNING.combat.attackDamage);
+    this.world.damageEnemiesInRadius(cx, this.sprite.y, reach * 0.55, damage);
     this.flashAttack(cx);
     this.audio.play(this.cat.sounds.attack);
   }
@@ -131,9 +151,16 @@ export class Player {
 
   // --- Ability callbacks ---
 
-  beginDash(durationMs: number, velX: number): void {
+  beginDash(durationMs: number, velX: number, damage = 0): void {
     this.dashUntil = this.world.time.now + durationMs;
     this.dashVelX = velX;
+    this.dashDamage = damage;
+  }
+
+  /** Damage dealt by an in-progress dash-strike, or 0 if not currently
+   *  dashing with damage. Read by GameScene on player↔enemy overlap. */
+  get dashStrikeDamage(): number {
+    return this.world.time.now < this.dashUntil ? this.dashDamage : 0;
   }
 
   beginSlam(radius: number): void {

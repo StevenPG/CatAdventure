@@ -261,6 +261,12 @@ export class GameScene extends Phaser.Scene implements GameWorld {
 
   private onPlayerEnemy(enemySprite: Phaser.Physics.Arcade.Sprite): void {
     if (!enemySprite.active || this.finished) return;
+    // Dash-strike: barreling through an enemy damages it instead of the player.
+    const dashDamage = this.player.dashStrikeDamage;
+    if (dashDamage > 0) {
+      this.hurtEnemy(enemySprite, dashDamage);
+      return;
+    }
     const playerBody = this.player.body;
     const stomping =
       playerBody.velocity.y > TUNING.combat.stompVelocityThreshold && this.player.sprite.y < enemySprite.y - 8;

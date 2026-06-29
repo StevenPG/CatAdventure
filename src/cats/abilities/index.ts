@@ -1,5 +1,6 @@
 import type { Ability, AbilityId } from '../../types';
 import { DashAbility } from './DashAbility';
+import { DashStrikeAbility } from './DashStrikeAbility';
 import { GroundSlamAbility } from './GroundSlamAbility';
 import { ProjectileAbility } from './ProjectileAbility';
 import { AirGlideAbility } from './AirGlideAbility';
@@ -12,6 +13,8 @@ export function createAbility(id: AbilityId): Ability | null {
   switch (id) {
     case 'dash':
       return new DashAbility();
+    case 'dash-strike':
+      return new DashStrikeAbility();
     case 'ground-slam':
       return new GroundSlamAbility();
     case 'projectile':

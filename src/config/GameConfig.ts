@@ -55,6 +55,7 @@ export const TUNING = {
   /** Active-ability parameters. Each maps to an Ability implementation. */
   abilities: {
     dash: { speed: 720, durationMs: 160, cooldownMs: 700, groundLiftY: 120 },
+    dashStrike: { speed: 540, durationMs: 150, cooldownMs: 800, groundLiftY: 60, damage: 2 },
     groundSlam: { speed: 1400, impactRadius: 90, damage: 2, cooldownMs: 600 },
     projectile: { speed: 560, lifespanMs: 1400, cooldownMs: 450, spawnOffset: 24, damage: 1 },
     airGlide: { fallSpeed: 90 },
