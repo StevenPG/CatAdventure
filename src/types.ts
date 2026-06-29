@@ -46,10 +46,13 @@ export interface CatDefinition {
   name: string;
   /** One-line flavor / what makes this cat special. */
   description: string;
-  /** Placeholder body color until real sprite art is supplied. */
+  /** Placeholder body color; also tints the shared placeholder sprite sheet. */
   bodyColor: number;
   /** Color of this cat's face in the switch bar. */
   faceColor: number;
+  /** Spritesheet texture key (see config/assets.ts SHEETS). Defaults to the
+   *  shared 'cat' placeholder. Set per-cat once real art is added. */
+  spriteSheet?: string;
   stats: CatStats;
   ability: AbilityId;
   effect: EffectId;

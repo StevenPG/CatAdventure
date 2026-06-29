@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
-import { COLORS, PHYSICS } from '../config/GameConfig';
+import { COLORS, GAME_HEIGHT, GAME_WIDTH, TUNING } from '../config/GameConfig';
+import { BACKGROUND } from '../config/assets';
 import { LEVELS } from '../data/levels';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Collectible } from '../entities/Collectible';
 import { CatManager, CatEvents } from '../systems/CatManager';
 import { SaveManager } from '../systems/SaveManager';
+import { AudioManager } from '../systems/AudioManager';
 import type { CatDefinition, GameWorld, LevelDefinition } from '../types';
 
 interface GameInit {
@@ -29,6 +31,8 @@ export class GameScene extends Phaser.Scene implements GameWorld {
   private collectibleGroup!: Phaser.Physics.Arcade.Group;
   private projectiles!: Phaser.Physics.Arcade.Group;
   private exit!: Phaser.Physics.Arcade.Image;
+  private audio!: AudioManager;
+  private bgLayers: { sprite: Phaser.GameObjects.TileSprite; parallax: number }[] = [];
 
   private collected = 0;
   private total = 0;
@@ -58,17 +62,20 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.finished = false;
     this.respawning = false;
     this.enemies = [];
+    this.bgLayers = [];
   }
 
   create(): void {
-    this.physics.world.gravity.y = PHYSICS.gravityY;
+    this.physics.world.gravity.y = TUNING.physics.gravityY;
     this.physics.world.setBounds(0, 0, this.level.width, this.level.height);
     // Open the bottom edge so pits are real falls (triggers the soft respawn).
     // Left/right/top still contain the player.
     this.physics.world.setBoundsCollision(true, true, true, false);
     this.cameras.main.setBounds(0, 0, this.level.width, this.level.height);
     this.cameras.main.setBackgroundColor(COLORS.background);
+    this.audio = new AudioManager(this);
 
+    this.buildBackground();
     this.buildPlatforms();
     this.buildExit();
     this.buildCollectibles();
@@ -95,6 +102,30 @@ export class GameScene extends Phaser.Scene implements GameWorld {
 
   // --- Build helpers ---
 
+  /** Sky + parallax hill layers. Layers scroll fractionally with the camera. */
+  private buildBackground(): void {
+    this.add
+      .image(0, 0, 'bg-sky')
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(-100)
+      .setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
+
+    for (const layer of BACKGROUND.layers) {
+      const sprite = this.add
+        .tileSprite(0, GAME_HEIGHT, GAME_WIDTH, layer.height, layer.key)
+        .setOrigin(0, 1)
+        .setScrollFactor(0)
+        .setDepth(-90);
+      this.bgLayers.push({ sprite, parallax: layer.parallax });
+    }
+  }
+
+  private updateBackground(): void {
+    const scrollX = this.cameras.main.scrollX;
+    for (const layer of this.bgLayers) layer.sprite.tilePositionX = scrollX * layer.parallax;
+  }
+
   private buildPlatforms(): void {
     this.platforms = this.physics.add.staticGroup();
     this.breakables = this.physics.add.staticGroup();
@@ -104,12 +135,19 @@ export class GameScene extends Phaser.Scene implements GameWorld {
       img.setDisplaySize(p.width, p.height);
       img.setTint(p.breakable ? COLORS.platformBreakable : COLORS.platform);
       img.refreshBody();
+      // Crisp top edge highlight (purely decorative, no body).
+      this.add
+        .image(p.x + p.width / 2, p.y, 'tile')
+        .setDisplaySize(p.width, 4)
+        .setOrigin(0.5, 0)
+        .setTint(p.breakable ? COLORS.platformBreakableTop : COLORS.platformTop)
+        .setDepth(1);
     }
   }
 
   private buildExit(): void {
     this.exit = this.physics.add.staticImage(this.level.exit.x, this.level.exit.y, 'tile');
-    this.exit.setDisplaySize(44, 88).setTint(0xa7f070).refreshBody();
+    this.exit.setDisplaySize(44, 88).setTint(COLORS.exit).refreshBody();
   }
 
   private buildCollectibles(): void {
@@ -153,7 +191,7 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.physics.add.collider(this.projectiles, this.breakables, (proj) => proj.destroy());
     this.physics.add.overlap(this.projectiles, this.enemyGroup, (proj, e) => {
       (proj as Phaser.Physics.Arcade.Image).destroy();
-      this.hurtEnemy(e as Phaser.Physics.Arcade.Sprite, 1);
+      this.hurtEnemy(e as Phaser.Physics.Arcade.Sprite, TUNING.abilities.projectile.damage);
     });
   }
 
@@ -189,12 +227,13 @@ export class GameScene extends Phaser.Scene implements GameWorld {
   // --- GameWorld implementation (used by abilities) ---
 
   spawnProjectile(x: number, y: number, direction: number, _reach: number): void {
+    const cfg = TUNING.abilities.projectile;
     const proj = this.projectiles.create(x, y, 'projectile') as Phaser.Physics.Arcade.Image;
     proj.setTint(COLORS.projectile);
     const body = proj.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
-    body.setVelocityX(direction * 560);
-    this.time.delayedCall(1400, () => proj.active && proj.destroy());
+    body.setVelocityX(direction * cfg.speed);
+    this.time.delayedCall(cfg.lifespanMs, () => proj.active && proj.destroy());
   }
 
   damageEnemiesInRadius(x: number, y: number, radius: number, damage = 1): void {
@@ -223,9 +262,10 @@ export class GameScene extends Phaser.Scene implements GameWorld {
   private onPlayerEnemy(enemySprite: Phaser.Physics.Arcade.Sprite): void {
     if (!enemySprite.active || this.finished) return;
     const playerBody = this.player.body;
-    const stomping = playerBody.velocity.y > 80 && this.player.sprite.y < enemySprite.y - 8;
+    const stomping =
+      playerBody.velocity.y > TUNING.combat.stompVelocityThreshold && this.player.sprite.y < enemySprite.y - 8;
     if (stomping) {
-      this.hurtEnemy(enemySprite, 2);
+      this.hurtEnemy(enemySprite, TUNING.combat.stompDamage);
       this.player.bounceOffEnemy();
     } else if (this.player.takeDamage(this.time.now)) {
       // knockback away from the enemy
@@ -246,6 +286,7 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     if (!item) return;
     item.collect();
     this.collected += 1;
+    this.audio.play('sfx-collect');
     this.emitHud();
   }
 
@@ -286,16 +327,16 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.tweens.add({ targets: msg, alpha: 1, duration: 200 });
 
     // Beat to read the message, then scroll back to the start.
-    this.time.delayedCall(850, () => {
+    this.time.delayedCall(TUNING.respawn.messageDelayMs, () => {
       cam.stopFollow();
       this.player.sprite.setPosition(this.level.spawn.x, this.level.spawn.y);
       this.player.resetHealth();
       this.emitHud();
-      cam.pan(this.level.spawn.x, this.level.spawn.y, 850, 'Sine.easeInOut');
+      cam.pan(this.level.spawn.x, this.level.spawn.y, TUNING.respawn.panDurationMs, 'Sine.easeInOut');
       cam.once(Phaser.Cameras.Scene2D.Events.PAN_COMPLETE, () => {
         cam.startFollow(this.player.sprite, true, 0.12, 0.12);
         body.setAllowGravity(true);
-        this.player.makeInvulnerable(900);
+        this.player.makeInvulnerable(TUNING.respawn.invulnMs);
         this.tweens.add({ targets: msg, alpha: 0, duration: 300, delay: 150, onComplete: () => msg.destroy() });
         this.respawning = false;
       });
@@ -332,6 +373,7 @@ export class GameScene extends Phaser.Scene implements GameWorld {
   // --- Main loop ---
 
   override update(time: number, delta: number): void {
+    this.updateBackground();
     if (this.finished || this.respawning) return;
     const k = this.keys;
 

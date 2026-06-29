@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
-import { COLORS } from '../config/GameConfig';
+import { COLORS, TUNING } from '../config/GameConfig';
 
-export const ENEMY_TEXTURE = 'enemy-body';
+export const ENEMY_TEXTURE = 'enemy';
 
-/** Simple patrolling enemy. Walks back and forth across a patrol span,
+/** Simple patrolling enemy. Walks back and forth across a patrol span and
  *  flips at edges/walls. Defeated by stomp, attack, projectile, or slam. */
 export class Enemy {
   readonly sprite: Phaser.Physics.Arcade.Sprite;
@@ -11,7 +11,7 @@ export class Enemy {
   private readonly originX: number;
   private readonly patrolRange: number;
   private dir: 1 | -1 = 1;
-  private readonly speed = 70;
+  private readonly speed = TUNING.enemy.speed;
 
   constructor(scene: Phaser.Scene, x: number, y: number, patrol = 80) {
     this.originX = x;
@@ -21,6 +21,7 @@ export class Enemy {
     this.sprite.setCollideWorldBounds(true);
     (this.sprite.body as Phaser.Physics.Arcade.Body).setBounceX(0);
     this.sprite.setData('ref', this);
+    if (scene.anims.exists('enemy-walk')) this.sprite.anims.play('enemy-walk');
   }
 
   update(): void {

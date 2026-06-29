@@ -49,14 +49,16 @@ touching engine code.
 ```
 src/
   main.ts                     # Phaser.Game bootstrap + scene list
-  config/GameConfig.ts        # tunable constants (physics, combat, colors)
+  config/
+    GameConfig.ts             # TUNING — ALL gameplay knobs in one place
+    assets.ts                 # asset manifest: sprites, animations, sounds, bg
   types.ts                    # shared interfaces (CatDefinition, GameWorld, ...)
   data/
     cats.ts                   # THE ROSTER — your 13 cats live here
     levels.ts                 # level layouts as plain data
   entities/
-    Player.ts                 # the controllable cat; re-equips on switch
-    Enemy.ts                  # patrolling enemy
+    Player.ts                 # the controllable cat; animates + re-equips on switch
+    Enemy.ts                  # patrolling enemy (walk animation)
     Collectible.ts            # treat
   cats/
     abilities/                # one file per active ability + registry
@@ -65,12 +67,14 @@ src/
     CatManager.ts             # roster + active-cat switching (emits events)
     SaveManager.ts            # localStorage progress
     AudioManager.ts           # plays sound keys; no-ops until audio is loaded
+    PlaceholderFactory.ts     # generates placeholder spritesheets + WAV sounds
   scenes/
     BootScene.ts              # boot
-    PreloadScene.ts           # generates placeholder textures (swap for real art)
+    PreloadScene.ts           # loads the manifest (real files or placeholders)
     LevelSelectScene.ts       # level picker (locked/unlocked, treat counts)
-    GameScene.ts              # gameplay; implements GameWorld for abilities
+    GameScene.ts              # gameplay + parallax background; implements GameWorld
     UIScene.ts                # parallel overlay: HUD, cat bar, screen effects
+    PauseScene.ts             # pause overlay
 ```
 
 **Why it's editable:** `GameScene` exposes a small `GameWorld` interface
@@ -111,15 +115,34 @@ Append a `LevelDefinition` to `src/data/levels.ts` — platforms (with optional
 `breakable`), enemies, collectibles, spawn, and exit, all in world pixels. The
 level select picks them up automatically and unlocks them in order.
 
+### Tuning the feel
+
+`src/config/GameConfig.ts` exports one `TUNING` object holding **every gameplay
+number**: gravity, jump height, run speed, attack reach/damage, stomp bounce,
+each ability's parameters (dash speed, slam radius, projectile speed/cooldown,
+glide fall speed), enemy speed, and the soft-respawn timing. Per-cat values in
+`cats.ts` are multipliers of these bases, so bumping `baseJumpVelocity` rescales
+the whole roster while a single cat can still be `* 1.35`.
+
 ### Adding your art & sound
 
-1. **Sprites:** load real sheets in `PreloadScene.preload()` under per-cat
-   texture keys, build animations, and have `Player.setCat` select the cat's
-   sheet/animations instead of tinting the placeholder. Delete the matching
-   `make*Texture` generator.
-2. **Audio:** load files in `PreloadScene` under the `sounds` keys already
-   referenced in `cats.ts` (e.g. `sfx-jump`, `sfx-dash`). `AudioManager`
-   silently no-ops on missing keys, so they light up the moment files exist.
+Everything is driven by the manifest in `src/config/assets.ts`. Each entry ships
+with a generated placeholder and an optional real-file `src` — set the path,
+drop the file in `public/`, and the loader uses it instead. **No code changes.**
+
+1. **Sprites:** in `assets.ts → SHEETS`, set `src` to a spritesheet PNG laid out
+   as `frameCount` frames of `frameWidth`×`frameHeight`. Frame order matches
+   `CAT_ANIMS` (idle, run, jump, fall, attack). For per-cat art, add a new sheet
+   entry and set `spriteSheet: '<key>'` on that cat in `cats.ts`.
+2. **Audio:** in `assets.ts → SFX`, set `src` on any key (e.g. `sfx-jump`,
+   `sfx-dash`) to a `.wav`/`.mp3`/`.ogg`. The cat `sounds` in `cats.ts` already
+   reference these keys.
+3. **Background:** edit `assets.ts → BACKGROUND` (sky colors, parallax hill
+   layers + factors), or load real images for the layer keys in `PreloadScene`.
+
+Placeholders (animated spritesheets + audible tones) are synthesized by
+`PlaceholderFactory`, so the game looks and sounds alive before any real asset
+exists.
 
 ## Tech
 

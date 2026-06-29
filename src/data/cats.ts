@@ -1,3 +1,4 @@
+import { TUNING } from '../config/GameConfig';
 import type { CatDefinition } from '../types';
 
 /**
@@ -14,9 +15,11 @@ import type { CatDefinition } from '../types';
  * Overlap in abilities is intentional and fine.
  */
 
-const BASE_SPEED = 240;
-const BASE_JUMP = 720;
-const BASE_REACH = 56;
+// Base values come from the central tuning config; per-cat tweaks are
+// expressed as multipliers so changing a base rescales the whole roster.
+const BASE_SPEED = TUNING.player.baseSpeed;
+const BASE_JUMP = TUNING.player.baseJumpVelocity;
+const BASE_REACH = TUNING.player.baseAttackReach;
 
 export const CATS: CatDefinition[] = [
   {
