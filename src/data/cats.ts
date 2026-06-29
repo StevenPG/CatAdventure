@@ -23,15 +23,16 @@ const BASE_REACH = TUNING.player.baseAttackReach;
 
 export const CATS: CatDefinition[] = [
   {
-    id: 'pounce',
-    name: 'Pounce',
-    description: 'Springy double-jumper. Loves the high shelves.',
-    bodyColor: 0xffa94d,
-    faceColor: 0xffa94d,
-    stats: { speed: BASE_SPEED, jumpVelocity: BASE_JUMP, extraJumps: 1, attackReach: BASE_REACH },
-    ability: 'none',
+    id: 'eli',
+    name: 'Eli',
+    description: 'A three-legged gray rocket who never once acted like he was down a paw.',
+    bodyColor: 0x9badb7,
+    faceColor: 0x9badb7,
+    // Very hype: high speed, low jump (down a back leg). Dash = his speed bursts.
+    stats: { speed: BASE_SPEED * 1.35, jumpVelocity: BASE_JUMP * 0.8, extraJumps: 0, attackReach: BASE_REACH },
+    ability: 'dash',
     effect: 'none',
-    sounds: { jump: 'sfx-jump', attack: 'sfx-attack', select: 'sfx-select' },
+    sounds: { jump: 'sfx-jump', attack: 'sfx-attack', ability: 'sfx-dash', select: 'sfx-select' },
   },
   {
     id: 'dasher',
