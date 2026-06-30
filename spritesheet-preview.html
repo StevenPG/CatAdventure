@@ -6,9 +6,10 @@
     <style>
       body { margin: 0; background: #14151f; color: #c0cbdc; font-family: system-ui, sans-serif; padding: 28px 32px; }
       h1 { color: #ffcd75; margin: 0 0 4px; }
-      h2 { color: #73eff7; margin: 28px 0 10px; font-size: 18px; }
-      p { max-width: 760px; line-height: 1.5; }
-      .row { display: flex; flex-wrap: wrap; gap: 18px; }
+      h2 { color: #73eff7; margin: 30px 0 4px; font-size: 20px; }
+      h3 { color: #a7f070; margin: 18px 0 8px; font-size: 15px; font-weight: 600; }
+      p { max-width: 800px; line-height: 1.5; }
+      .row { display: flex; flex-wrap: wrap; gap: 16px; }
       .cell { background: #1f2233; border: 1px solid #2f3450; border-radius: 8px; padding: 10px; text-align: center; }
       .cell canvas { image-rendering: pixelated; display: block; background:
         repeating-conic-gradient(#23263a 0% 25%, #1c1f30 0% 50%) 50% / 16px 16px; border-radius: 4px; }
@@ -21,87 +22,93 @@
   <body>
     <h1>Cat Adventure — Sprite Sheet Reference 🐾</h1>
     <p>
-      This is the <b>placeholder</b> cat sheet, generated procedurally. It's the spec for the real art:
-      a <code>48×48</code> strip of <b>10 frames</b>, left to right. Match this frame order and the game
-      animates it automatically. Tinted orange here just to read like a cat — your sheet should be drawn
-      in full color (the engine tints placeholders, not real art).
+      These are the <b>placeholder</b> sheets, generated procedurally — the spec for the real art.
+      Each sheet is a horizontal strip of equal frames, left to right. Match the frame order and the
+      game animates it automatically. Sheets are tinted here just to read; real art should be drawn in
+      full color (the engine only tints placeholders).
     </p>
-
-    <h2>Animations (live)</h2>
-    <div class="row" id="anims"></div>
-
-    <h2>All 10 frames</h2>
-    <div class="row" id="frames"></div>
-
-    <h2>Raw sheet (what a file looks like)</h2>
-    <div class="cell" style="display:inline-block"><canvas id="strip"></canvas><div class="label sub">10 × 48px = 480 × 48</div></div>
+    <div id="root"></div>
 
     <script type="module">
       import { PlaceholderFactory } from '/src/systems/PlaceholderFactory.ts';
-      import { CAT_ANIMS } from '/src/config/assets.ts';
+      import { CAT_ANIMS, ENEMY_ANIMS, SHEETS } from '/src/config/assets.ts';
 
-      const TINT = '#ffa94d';
-      const FW = 48;
-      const uri = PlaceholderFactory.makeSheet('cat', FW, FW, 10);
-      const img = new Image();
-      img.src = uri;
-      await img.decode();
+      const root = document.getElementById('root');
+      const players = [];
 
-      // Tinted single-frame canvas (white -> color, dark stays dark, bg clear).
-      function frameCanvas(fi, scale) {
+      function tintedFrameCanvas(img, fw, fi, scale, tint) {
         const c = document.createElement('canvas');
-        c.width = FW * scale; c.height = FW * scale;
+        c.width = fw * scale; c.height = fw * scale;
         const x = c.getContext('2d');
         x.imageSmoothingEnabled = false;
         const off = document.createElement('canvas');
-        off.width = FW; off.height = FW;
+        off.width = fw; off.height = fw;
         const o = off.getContext('2d');
-        o.drawImage(img, fi * FW, 0, FW, FW, 0, 0, FW, FW);
+        o.drawImage(img, fi * fw, 0, fw, fw, 0, 0, fw, fw);
         o.globalCompositeOperation = 'multiply';
-        o.fillStyle = TINT; o.fillRect(0, 0, FW, FW);
+        o.fillStyle = tint; o.fillRect(0, 0, fw, fw);
         o.globalCompositeOperation = 'destination-in';
-        o.drawImage(img, fi * FW, 0, FW, FW, 0, 0, FW, FW);
-        x.drawImage(off, 0, 0, FW * scale, FW * scale);
+        o.drawImage(img, fi * fw, 0, fw, fw, 0, 0, fw, fw);
+        x.drawImage(off, 0, 0, fw * scale, fw * scale);
         return c;
       }
 
-      const FRAME_LABELS = [
-        'idle', 'idle (breathe)', 'idle (blink)',
-        'run 1', 'run 2', 'run 3', 'run 4',
-        'jump', 'fall', 'attack',
-      ];
+      async function buildSheet({ title, key, fw, count, anims, labels, tint }) {
+        const uri = PlaceholderFactory.makeSheet(key, fw, fw, count);
+        const img = new Image();
+        img.src = uri;
+        await img.decode();
 
-      // Static frame grid.
-      const framesEl = document.getElementById('frames');
-      for (let i = 0; i < 10; i++) {
-        const cell = document.createElement('div');
-        cell.className = 'cell';
-        cell.appendChild(frameCanvas(i, 3));
-        const l = document.createElement('div');
-        l.className = 'label';
-        l.innerHTML = `<b>${i}</b> · ${FRAME_LABELS[i]}`;
-        cell.appendChild(l);
-        framesEl.appendChild(cell);
+        const h2 = document.createElement('h2'); h2.textContent = title; root.appendChild(h2);
+
+        // Live animations.
+        const a3 = document.createElement('h3'); a3.textContent = 'Animations (live)'; root.appendChild(a3);
+        const animRow = document.createElement('div'); animRow.className = 'row'; root.appendChild(animRow);
+        for (const [name, def] of Object.entries(anims)) {
+          const cell = document.createElement('div'); cell.className = 'cell';
+          const canvas = document.createElement('canvas');
+          canvas.width = fw * 4; canvas.height = fw * 4;
+          const ctx = canvas.getContext('2d'); ctx.imageSmoothingEnabled = false;
+          cell.appendChild(canvas);
+          const l = document.createElement('div'); l.className = 'label';
+          l.innerHTML = `<b>${name}</b><br><span class="sub">${def.frames.join(',')} @ ${def.frameRate}fps</span>`;
+          cell.appendChild(l); animRow.appendChild(cell);
+          players.push({ ctx, def, img, fw, tint, t: 0, idx: 0, size: fw * 4 });
+        }
+
+        // Static labeled frames.
+        const f3 = document.createElement('h3'); f3.textContent = `All ${count} frames`; root.appendChild(f3);
+        const frameRow = document.createElement('div'); frameRow.className = 'row'; root.appendChild(frameRow);
+        for (let i = 0; i < count; i++) {
+          const cell = document.createElement('div'); cell.className = 'cell';
+          cell.appendChild(tintedFrameCanvas(img, fw, i, 3, tint));
+          const l = document.createElement('div'); l.className = 'label';
+          l.innerHTML = `<b>${i}</b> · ${labels[i] ?? ''}`;
+          cell.appendChild(l); frameRow.appendChild(cell);
+        }
+
+        // Raw strip (untinted).
+        const cell = document.createElement('div'); cell.className = 'cell';
+        cell.style.display = 'inline-block'; cell.style.marginTop = '12px';
+        const strip = document.createElement('canvas');
+        strip.width = fw * count * 2; strip.height = fw * 2;
+        const sx = strip.getContext('2d'); sx.imageSmoothingEnabled = false;
+        sx.drawImage(img, 0, 0, fw * count * 2, fw * 2);
+        cell.appendChild(strip);
+        const l = document.createElement('div'); l.className = 'label sub';
+        l.textContent = `raw sheet — ${count} × ${fw}px = ${fw * count} × ${fw}`;
+        cell.appendChild(l); root.appendChild(cell);
       }
 
-      // Live animated previews per CAT_ANIMS entry.
-      const animsEl = document.getElementById('anims');
-      const players = [];
-      for (const [name, def] of Object.entries(CAT_ANIMS)) {
-        const cell = document.createElement('div');
-        cell.className = 'cell';
-        const canvas = document.createElement('canvas');
-        canvas.width = FW * 4; canvas.height = FW * 4;
-        const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-        cell.appendChild(canvas);
-        const l = document.createElement('div');
-        l.className = 'label';
-        l.innerHTML = `<b>${name}</b><br><span class="sub">${def.frames.join(',')} @ ${def.frameRate}fps</span>`;
-        cell.appendChild(l);
-        animsEl.appendChild(cell);
-        players.push({ ctx, def, t: 0, idx: 0 });
-      }
+      await buildSheet({
+        title: 'Cat (48×48, 10 frames)', key: 'cat', fw: 48, count: 10, anims: CAT_ANIMS, tint: '#ffa94d',
+        labels: ['idle', 'idle (breathe)', 'idle (blink)', 'run 1', 'run 2', 'run 3', 'run 4', 'jump', 'fall', 'attack'],
+      });
+      await buildSheet({
+        title: 'Enemy (36×36, 6 frames)', key: 'enemy', fw: 36, count: 6, anims: ENEMY_ANIMS, tint: '#ef7d57',
+        labels: ['idle', 'idle (blink)', 'walk 1', 'walk 2', 'walk 3', 'walk 4'],
+      });
+      void SHEETS;
 
       let last = performance.now();
       function tick(now) {
@@ -109,21 +116,14 @@
         for (const p of players) {
           p.t += dt;
           const step = 1000 / p.def.frameRate;
-          if (p.t >= step) { p.t -= step; p.idx = (p.idx + 1) % p.def.frames.length; }
+          while (p.t >= step) { p.t -= step; p.idx = (p.idx + 1) % p.def.frames.length; }
           const fi = p.def.frames[p.idx];
-          p.ctx.clearRect(0, 0, FW * 4, FW * 4);
-          p.ctx.drawImage(frameCanvas(fi, 4), 0, 0);
+          p.ctx.clearRect(0, 0, p.size, p.size);
+          p.ctx.drawImage(tintedFrameCanvas(p.img, p.fw, fi, 4, p.tint), 0, 0);
         }
         requestAnimationFrame(tick);
       }
       requestAnimationFrame(tick);
-
-      // Raw sheet (white, untinted) at 2x.
-      const strip = document.getElementById('strip');
-      strip.width = 480 * 2; strip.height = 48 * 2;
-      const sx = strip.getContext('2d');
-      sx.imageSmoothingEnabled = false;
-      sx.drawImage(img, 0, 0, 480 * 2, 48 * 2);
     </script>
   </body>
 </html>

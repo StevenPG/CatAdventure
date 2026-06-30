@@ -49,7 +49,7 @@ export interface SfxAsset {
 
 export const SHEETS: Record<string, SheetAsset> = {
   cat: { frameWidth: 48, frameHeight: 48, frameCount: 10, generator: 'cat' },
-  enemy: { frameWidth: 36, frameHeight: 36, frameCount: 4, generator: 'enemy' },
+  enemy: { frameWidth: 36, frameHeight: 36, frameCount: 6, generator: 'enemy' },
 };
 
 /** Animation layout for any cat spritesheet (frame indices into the 10 frames).
@@ -63,8 +63,10 @@ export const CAT_ANIMS: Record<string, AnimDef> = {
   attack: { frames: [9], frameRate: 1, repeat: 0 },
 };
 
+/** Enemy sheet layout: 0-1 idle (incl. blink), 2-5 walk cycle. */
 export const ENEMY_ANIMS: Record<string, AnimDef> = {
-  walk: { frames: [0, 1, 2, 3], frameRate: 6, repeat: -1 },
+  idle: { frames: [0, 1], frameRate: 2, repeat: -1 },
+  walk: { frames: [2, 3, 4, 5], frameRate: 8, repeat: -1 },
 };
 
 // --- Sound effects -----------------------------------------------------------

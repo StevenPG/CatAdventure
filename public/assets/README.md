@@ -53,8 +53,8 @@ Different frame size or count? Update `frameWidth`/`frameHeight`/`frameCount`
 on the entry, and the frame indices in `CAT_ANIMS` if your layout differs.
 (`generator` is only used for the placeholder when `src` is missing — leave it.)
 
-The enemy sheet works the same way (`enemy` key, default **36×36**, **4 frames**
-walk cycle, mapped by `ENEMY_ANIMS`).
+The enemy sheet works the same way (`enemy` key, default **36×36**, **6 frames**:
+`0-1` idle/blink, `2-5` walk cycle, mapped by `ENEMY_ANIMS`).
 
 ## Sound effects (`sfx/`)
 

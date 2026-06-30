@@ -182,45 +182,95 @@ function drawCat(ctx: CanvasRenderingContext2D, w: number, h: number, p: CatPose
   }
 }
 
-/** Four enemy walk frames with a bob + leg shuffle. */
+/** A single enemy pose. */
+interface EnemyPose {
+  /** Body raised by this much (walk bounce). */
+  bob: number;
+  /** Body width multiplier (squash). */
+  squash: number;
+  blink: boolean;
+  /** x of the left/right feet relative to centre. */
+  footL: number;
+  footR: number;
+}
+
+/**
+ * Six enemy poses for a 36x36 sheet:
+ *   0-1 idle (blink), 2-5 bouncy walk cycle (alternating feet).
+ */
 function drawEnemyFrame(ctx: CanvasRenderingContext2D, w: number, h: number, frame: number): void {
+  const base: EnemyPose = { bob: 0, squash: 1, blink: false, footL: -6, footR: 6 };
+  const poses: EnemyPose[] = [
+    { ...base },                                              // 0 idle
+    { ...base, blink: true },                                 // 1 idle (blink)
+    { ...base, footL: -9, footR: 4 },                         // 2 walk (left lead)
+    { ...base, bob: 3, squash: 1.06 },                        // 3 walk (bounce up)
+    { ...base, footL: -4, footR: 9 },                         // 4 walk (right lead)
+    { ...base, bob: 3, squash: 1.06 },                        // 5 walk (bounce up)
+  ];
+  drawEnemy(ctx, w, h, poses[frame] ?? base);
+}
+
+function drawEnemy(ctx: CanvasRenderingContext2D, w: number, h: number, p: EnemyPose): void {
+  const white = '#ffffff';
+  const dark = '#1a1c2c';
   const cx = w / 2;
-  const bob = frame % 2 === 0 ? 0 : 2;
-  ctx.fillStyle = '#ffffff';
-  const bodyY = h - 28 - 2 + bob;
-  roundRect(ctx, 2, bodyY, w - 4, 26, 8);
+  const bodyW = 30 * p.squash;
+  const bodyH = 24;
+  const bodyX = cx - bodyW / 2;
+  const top = h - 2 - bodyH - p.bob;
+  const bottom = top + bodyH;
+  const feetY = h - 1;
+
+  // Feet (behind body).
+  ctx.fillStyle = white;
+  const fw = 6;
+  const foot = (x: number) => {
+    roundRect(ctx, cx + x - fw / 2, bottom - 2, fw, feetY - bottom + 2, 2);
+    ctx.fill();
+  };
+  foot(p.footL);
+  foot(p.footR);
+
+  // Body.
+  roundRect(ctx, bodyX, top, bodyW, bodyH, 9);
   ctx.fill();
-  // spiky top
-  ctx.beginPath();
-  ctx.moveTo(6, bodyY);
-  ctx.lineTo(12, bodyY - 8);
-  ctx.lineTo(18, bodyY);
-  ctx.closePath();
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(18, bodyY);
-  ctx.lineTo(24, bodyY - 8);
-  ctx.lineTo(30, bodyY);
-  ctx.closePath();
-  ctx.fill();
-  // shuffling feet
-  const off = frame < 2 ? 3 : -3;
-  ctx.fillRect(cx - 10 + off, h - 3, 6, 3);
-  ctx.fillRect(cx + 4 - off, h - 3, 6, 3);
-  // angry eyes
-  ctx.fillStyle = '#1a1c2c';
-  ctx.beginPath();
-  ctx.moveTo(9, bodyY + 10);
-  ctx.lineTo(17, bodyY + 8);
-  ctx.lineTo(9, bodyY + 16);
-  ctx.closePath();
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(w - 9, bodyY + 10);
-  ctx.lineTo(w - 17, bodyY + 8);
-  ctx.lineTo(w - 9, bodyY + 16);
-  ctx.closePath();
-  ctx.fill();
+
+  // Three spikes along the top.
+  const spike = (x: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x - 6, top + 2);
+    ctx.lineTo(x, top - 7);
+    ctx.lineTo(x + 6, top + 2);
+    ctx.closePath();
+    ctx.fill();
+  };
+  spike(cx - 9);
+  spike(cx);
+  spike(cx + 9);
+
+  // Angry eyes (dark — survive tinting).
+  ctx.fillStyle = dark;
+  const ey = top + 12;
+  if (p.blink) {
+    ctx.fillRect(cx - 13, ey + 2, 8, 2);
+    ctx.fillRect(cx + 5, ey + 2, 8, 2);
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(cx - 13, ey - 1);
+    ctx.lineTo(cx - 5, ey + 1);
+    ctx.lineTo(cx - 13, ey + 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx + 13, ey - 1);
+    ctx.lineTo(cx + 5, ey + 1);
+    ctx.lineTo(cx + 13, ey + 6);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // Frown.
+  ctx.fillRect(cx - 4, top + 19, 8, 2);
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {

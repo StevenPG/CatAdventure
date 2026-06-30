@@ -144,6 +144,16 @@ Placeholders (animated spritesheets + audible tones) are synthesized by
 `PlaceholderFactory`, so the game looks and sounds alive before any real asset
 exists.
 
+## Guides
+
+- [ANIMATION.md](ANIMATION.md) — how animations work, adding a new one, and
+  replacing the background.
+- [LEVELS.md](LEVELS.md) — designing and adding levels.
+- [public/assets/README.md](public/assets/README.md) — dropping in real art &
+  audio.
+- Run `npm run dev` and open `/spritesheet-preview.html` to see the sprite
+  sheets rendered and animated.
+
 ## Tech
 
 Phaser 3 (Arcade physics) · TypeScript (strict) · Vite. No backend — static
