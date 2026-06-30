@@ -16,17 +16,24 @@ public/assets/
 
 ## Cat spritesheets (`cats/`)
 
-One horizontal strip per cat. The default frame size is **48×48**, **6 frames**,
+One horizontal strip per cat. The default frame size is **48×48**, **10 frames**,
 left to right, in this exact order:
 
-| Frame | Pose      | Used by animation |
-| ----- | --------- | ----------------- |
-| 0     | idle A    | `idle` (frames 0,1) |
-| 1     | idle B    | `idle` |
-| 2     | run A     | `run` (frames 2,3) |
-| 3     | run B     | `run` |
-| 4     | jump/fall | `jump`, `fall` |
-| 5     | attack    | `attack` |
+| Frame | Pose            | Used by animation |
+| ----- | --------------- | ----------------- |
+| 0     | idle            | `idle` (0,1,0,2) |
+| 1     | idle (breathe)  | `idle` |
+| 2     | idle (blink)    | `idle` |
+| 3     | run 1           | `run` (3,4,5,6) |
+| 4     | run 2           | `run` |
+| 5     | run 3           | `run` |
+| 6     | run 4           | `run` |
+| 7     | jump            | `jump` |
+| 8     | fall            | `fall` |
+| 9     | attack          | `attack` |
+
+Run `npm run dev` and open **`/spritesheet-preview.html`** to see this layout
+rendered and animated live — it's the visual spec for the real sheet.
 
 To use one, add an entry to `SHEETS` in `src/config/assets.ts` and set the cat's
 `spriteSheet` in `src/data/cats.ts`:

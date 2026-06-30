@@ -48,18 +48,19 @@ export interface SfxAsset {
 // entry/texture key here and set `spriteSheet` on the cat in data/cats.ts.
 
 export const SHEETS: Record<string, SheetAsset> = {
-  cat: { frameWidth: 48, frameHeight: 48, frameCount: 6, generator: 'cat' },
+  cat: { frameWidth: 48, frameHeight: 48, frameCount: 10, generator: 'cat' },
   enemy: { frameWidth: 36, frameHeight: 36, frameCount: 4, generator: 'enemy' },
 };
 
-/** Animation layout for any cat spritesheet (frame indices into the 6 frames).
- *  Real per-cat sheets just need to match this frame ordering. */
+/** Animation layout for any cat spritesheet (frame indices into the 10 frames).
+ *  Real per-cat sheets just need to match this frame ordering:
+ *  0-2 idle (incl. blink), 3-6 run cycle, 7 jump, 8 fall, 9 attack. */
 export const CAT_ANIMS: Record<string, AnimDef> = {
-  idle: { frames: [0, 1], frameRate: 3, repeat: -1 },
-  run: { frames: [2, 3], frameRate: 10, repeat: -1 },
-  jump: { frames: [4], frameRate: 1, repeat: 0 },
-  fall: { frames: [4], frameRate: 1, repeat: 0 },
-  attack: { frames: [5], frameRate: 1, repeat: 0 },
+  idle: { frames: [0, 1, 0, 2], frameRate: 3, repeat: -1 },
+  run: { frames: [3, 4, 5, 6], frameRate: 12, repeat: -1 },
+  jump: { frames: [7], frameRate: 1, repeat: 0 },
+  fall: { frames: [8], frameRate: 1, repeat: 0 },
+  attack: { frames: [9], frameRate: 1, repeat: 0 },
 };
 
 export const ENEMY_ANIMS: Record<string, AnimDef> = {

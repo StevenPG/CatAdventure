@@ -53,55 +53,133 @@ export const PlaceholderFactory = {
 
 // --- Sprite drawing ----------------------------------------------------------
 
-/** Six cat poses: 0/1 idle bob, 2/3 run, 4 jump, 5 attack. */
+/** A single cat pose. The cat faces right (the engine flips for left). */
+interface CatPose {
+  /** Top y of the body. */
+  top: number;
+  /** Body height. */
+  bodyH: number;
+  /** Horizontal lean (forward = +x). */
+  lean: number;
+  /** Body width multiplier (squash/stretch). */
+  squash: number;
+  /** Ears swept back (0 = up, 1 = flat back). */
+  earBack: number;
+  eyes: 'open' | 'closed' | 'narrow';
+  /** x of the front legs (toward the face) relative to centre. */
+  frontLeg: number;
+  /** x of the back legs relative to centre. */
+  backLeg: number;
+  /** Tail raise (0 = low, 1 = high). */
+  tailLift: number;
+  /** Extend a front paw (attack). */
+  paw: boolean;
+  /** Open mouth (attack). */
+  mouth: boolean;
+}
+
+/**
+ * Ten reference poses for a 48x48 cat sheet:
+ *   0-2 idle (breathe + blink), 3-6 run cycle, 7 jump, 8 fall, 9 attack.
+ * Real art should follow this frame ordering (see public/assets/README.md).
+ */
 function drawCatFrame(ctx: CanvasRenderingContext2D, w: number, h: number, frame: number): void {
+  const base: CatPose = {
+    top: 18, bodyH: 24, lean: 0, squash: 1, earBack: 0, eyes: 'open',
+    frontLeg: 7, backLeg: -7, tailLift: 0.35, paw: false, mouth: false,
+  };
+  const poses: CatPose[] = [
+    { ...base },                                                                      // 0 idle
+    { ...base, top: 16, tailLift: 0.55 },                                             // 1 idle (breathe up)
+    { ...base, eyes: 'closed' },                                                      // 2 idle (blink)
+    { ...base, lean: 2, top: 18, frontLeg: 11, backLeg: -10, tailLift: 0.6 },         // 3 run reach
+    { ...base, lean: 1, top: 15, frontLeg: 3, backLeg: -3, tailLift: 0.7 },           // 4 run gather (up)
+    { ...base, lean: 2, top: 18, frontLeg: -8, backLeg: 9, tailLift: 0.6 },           // 5 run reach (other)
+    { ...base, lean: 1, top: 15, frontLeg: -3, backLeg: 3, tailLift: 0.7 },           // 6 run gather (up)
+    { ...base, top: 11, bodyH: 30, squash: 0.9, earBack: 1, tailLift: 1, frontLeg: 2, backLeg: -2 }, // 7 jump (stretch)
+    { ...base, top: 21, bodyH: 21, squash: 1.18, tailLift: 0.15, frontLeg: 12, backLeg: -12 },       // 8 fall (spread)
+    { ...base, lean: 4, eyes: 'narrow', paw: true, mouth: true, tailLift: 0.45 },     // 9 attack
+  ];
+  drawCat(ctx, w, h, poses[frame] ?? base);
+}
+
+function drawCat(ctx: CanvasRenderingContext2D, w: number, h: number, p: CatPose): void {
+  const white = '#ffffff';
+  const dark = '#1a1c2c';
   const cx = w / 2;
-  ctx.fillStyle = '#ffffff';
+  const bodyW = 26 * p.squash;
+  const bodyX = cx - bodyW / 2 + p.lean;
+  const bottom = p.top + p.bodyH;
+  const feetY = h - 1;
 
-  const bob = frame === 1 ? 2 : 0; // idle breathing
-  const stretch = frame === 4; // jump
-  const lean = frame === 5; // attack
-
-  const bodyW = 32;
-  const bodyH = stretch ? 36 : 30;
-  const bodyX = cx - bodyW / 2 + (lean ? 3 : 0);
-  const bodyY = h - bodyH - 2 - (stretch ? 4 : 0) + bob;
-
-  // ears
+  // Tail (behind the body), curving up from the rear (left side).
+  ctx.strokeStyle = white;
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  const tx = bodyX + 3;
+  const ty = bottom - 4;
   ctx.beginPath();
-  ctx.moveTo(bodyX + 4, bodyY + 4);
-  ctx.lineTo(bodyX + 10, bodyY - 10);
-  ctx.lineTo(bodyX + 16, bodyY + 4);
+  ctx.moveTo(tx, ty);
+  ctx.quadraticCurveTo(tx - 11, ty - 2, tx - 9 - p.tailLift * 3, ty - 6 - p.tailLift * 18);
+  ctx.stroke();
+
+  // Legs (drawn behind the body).
+  ctx.fillStyle = white;
+  const legW = 5;
+  const leg = (x: number) => {
+    roundRect(ctx, cx + x - legW / 2, bottom - 3, legW, feetY - bottom + 3, 2);
+    ctx.fill();
+  };
+  leg(p.backLeg);
+  leg(p.frontLeg);
+
+  // Ears (base tucked under the body top).
+  const tilt = p.earBack * 6;
+  ctx.beginPath();
+  ctx.moveTo(bodyX + 4, p.top + 4);
+  ctx.lineTo(bodyX + 9 + tilt, p.top - 9);
+  ctx.lineTo(bodyX + 15, p.top + 4);
   ctx.closePath();
   ctx.fill();
   ctx.beginPath();
-  ctx.moveTo(bodyX + bodyW - 4, bodyY + 4);
-  ctx.lineTo(bodyX + bodyW - 10, bodyY - 10);
-  ctx.lineTo(bodyX + bodyW - 16, bodyY + 4);
+  ctx.moveTo(bodyX + bodyW - 4, p.top + 4);
+  ctx.lineTo(bodyX + bodyW - 9 + tilt, p.top - 9);
+  ctx.lineTo(bodyX + bodyW - 15, p.top + 4);
   ctx.closePath();
   ctx.fill();
 
-  // body
-  roundRect(ctx, bodyX, bodyY, bodyW, bodyH, 9);
+  // Body.
+  roundRect(ctx, bodyX, p.top, bodyW, p.bodyH, 9);
   ctx.fill();
 
-  // legs (alternate for run)
-  if (frame === 2 || frame === 3) {
-    const off = frame === 2 ? 4 : -4;
-    ctx.fillRect(bodyX + 6 + off, h - 4, 6, 4);
-    ctx.fillRect(bodyX + bodyW - 12 - off, h - 4, 6, 4);
+  // Extended paw (attack).
+  if (p.paw) {
+    roundRect(ctx, bodyX + bodyW - 2, p.top + p.bodyH / 2 - 3, 12, 6, 3);
+    ctx.fill();
   }
 
-  // extended paw for attack
-  if (lean) ctx.fillRect(bodyX + bodyW, bodyY + bodyH / 2 - 3, 10, 6);
-
-  // face (stays dark through tint)
-  ctx.fillStyle = '#1a1c2c';
-  const eyeY = bodyY + 14;
-  ctx.beginPath();
-  ctx.arc(cx - 6 + (lean ? 3 : 0), eyeY, 3, 0, Math.PI * 2);
-  ctx.arc(cx + 6 + (lean ? 3 : 0), eyeY, 3, 0, Math.PI * 2);
-  ctx.fill();
+  // Face (dark — survives tinting). Front is the right side.
+  ctx.fillStyle = dark;
+  const ey = p.top + 11;
+  const ex1 = cx + p.lean + 1;
+  const ex2 = cx + p.lean + 8;
+  if (p.eyes === 'closed') {
+    ctx.fillRect(ex1 - 2, ey, 4, 1.6);
+    ctx.fillRect(ex2 - 2, ey, 4, 1.6);
+  } else if (p.eyes === 'narrow') {
+    ctx.fillRect(ex1 - 2, ey - 1, 4, 2);
+    ctx.fillRect(ex2 - 2, ey - 1, 4, 2);
+  } else {
+    ctx.beginPath();
+    ctx.arc(ex1, ey, 2.4, 0, Math.PI * 2);
+    ctx.arc(ex2, ey, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (p.mouth) {
+    ctx.beginPath();
+    ctx.arc(cx + p.lean + 5, ey + 7, 3, 0, Math.PI);
+    ctx.fill();
+  }
 }
 
 /** Four enemy walk frames with a bob + leg shuffle. */
