@@ -6,6 +6,7 @@ import { PoundDashAbility } from './PoundDashAbility';
 import { ProjectileAbility } from './ProjectileAbility';
 import { AirGlideAbility } from './AirGlideAbility';
 import { FeatherFallAbility } from './FeatherFallAbility';
+import { HoverAbility } from './HoverAbility';
 
 /**
  * Maps an AbilityId to a fresh Ability instance. Abilities are lightweight and
@@ -27,6 +28,8 @@ export function createAbility(id: AbilityId): Ability | null {
       return new AirGlideAbility();
     case 'feather-fall':
       return new FeatherFallAbility();
+    case 'hover':
+      return new HoverAbility();
     case 'none':
     default:
       return null;

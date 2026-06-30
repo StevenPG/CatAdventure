@@ -73,6 +73,9 @@ export const TUNING = {
     },
     // Passive gentle descent whenever airborne.
     featherFall: { fallSpeed: 140 },
+    // Hold the special key in the air to hover (gentle lift), limited by fuel
+    // that refills on landing so it can't trivialize a level.
+    hover: { liftVelocityY: -20, fuelMs: 1300 },
     projectile: { speed: 560, lifespanMs: 1400, cooldownMs: 450, spawnOffset: 24, damage: 1 },
     airGlide: { fallSpeed: 90 },
   },

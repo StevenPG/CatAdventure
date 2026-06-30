@@ -11,7 +11,8 @@ export type AbilityId =
   | 'pound-dash'
   | 'projectile'
   | 'air-glide'
-  | 'feather-fall';
+  | 'feather-fall'
+  | 'hover';
 
 /** Passive screen effects applied while a cat is active. Add new ids here,
  *  then register an implementation in cats/effects/index.ts. */
