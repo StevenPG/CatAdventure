@@ -53,9 +53,11 @@ export class LevelSelectScene extends Phaser.Scene {
       const title = this.add
         .text(0, -36, level.name, {
           fontFamily: 'system-ui, sans-serif',
-          fontSize: '24px',
+          fontSize: '22px',
           color: unlocked ? '#ffffff' : '#73849c',
           fontStyle: 'bold',
+          align: 'center',
+          wordWrap: { width: cardW - 24 },
         })
         .setOrigin(0.5);
       const sub = this.add
