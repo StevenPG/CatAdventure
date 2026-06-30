@@ -15,8 +15,10 @@ export const TUNING = {
     gravityY: 1600,
     /** Horizontal drag when no input is given (snappy stop). */
     dragX: 2400,
-    /** Max fall speed so cats don't tunnel through thin platforms. */
-    maxFallSpeed: 1400,
+    /** Max fall speed. Kept moderate so a body can't punch through a thin
+     *  platform between physics steps (Arcade has no swept collision); at 60fps
+     *  1100/60 ≈ 18px/step, well under the ~24px thinnest platform. */
+    maxFallSpeed: 1100,
     /** Sign applied to jump velocity. Negative = upward. */
     jumpSign: -1,
   },
@@ -56,7 +58,21 @@ export const TUNING = {
   abilities: {
     dash: { speed: 720, durationMs: 160, cooldownMs: 700, groundLiftY: 120 },
     dashStrike: { speed: 540, durationMs: 150, cooldownMs: 800, groundLiftY: 60, damage: 2 },
-    groundSlam: { speed: 1400, impactRadius: 90, damage: 2, cooldownMs: 600 },
+    // speed is capped by maxFallSpeed; kept at that ceiling for a snappy slam.
+    groundSlam: { speed: 1100, impactRadius: 90, damage: 2, shake: 0.008, cooldownMs: 600 },
+    // Context-sensitive: major slam in the air, short dash on the ground.
+    poundDash: {
+      slamSpeed: 1100,
+      impactRadius: 150,
+      slamDamage: 4,
+      slamShake: 0.018,
+      dashSpeed: 460,
+      dashDurationMs: 120,
+      dashGroundLiftY: 40,
+      cooldownMs: 800,
+    },
+    // Passive gentle descent whenever airborne.
+    featherFall: { fallSpeed: 140 },
     projectile: { speed: 560, lifespanMs: 1400, cooldownMs: 450, spawnOffset: 24, damage: 1 },
     airGlide: { fallSpeed: 90 },
   },

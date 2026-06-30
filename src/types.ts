@@ -8,8 +8,10 @@ export type AbilityId =
   | 'dash'
   | 'dash-strike'
   | 'ground-slam'
+  | 'pound-dash'
   | 'projectile'
-  | 'air-glide';
+  | 'air-glide'
+  | 'feather-fall';
 
 /** Passive screen effects applied while a cat is active. Add new ids here,
  *  then register an implementation in cats/effects/index.ts. */
@@ -59,6 +61,10 @@ export interface CatDefinition {
   spriteSheet?: string;
   /** Visual size multiplier. >1 = bigger cat, <1 = smaller. Defaults to 1. */
   scale?: number;
+  /** Max health (hearts). Defaults to TUNING.player.maxHealth. Tank cats raise
+   *  this. Health is tracked as damage-taken, so switching cats adjusts the
+   *  effective buffer without healing or instantly killing you. */
+  maxHealth?: number;
   stats: CatStats;
   ability: AbilityId;
   effect: EffectId;

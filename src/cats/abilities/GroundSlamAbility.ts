@@ -11,9 +11,10 @@ export class GroundSlamAbility implements Ability {
     const body = ctx.player.body;
     // Only meaningful in the air.
     if (body.blocked.down) return false;
-    body.setVelocityY(TUNING.abilities.groundSlam.speed);
+    const cfg = TUNING.abilities.groundSlam;
+    body.setVelocityY(cfg.speed);
     body.setVelocityX(0);
-    ctx.player.beginSlam(TUNING.abilities.groundSlam.impactRadius);
+    ctx.player.beginSlam(cfg.impactRadius, cfg.damage, cfg.shake);
     return true;
   }
 }

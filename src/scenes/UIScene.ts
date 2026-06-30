@@ -48,7 +48,8 @@ export class UIScene extends Phaser.Scene {
     this.onCatChanged(this.game_.catManager.current, this.game_.catManager.currentIndex);
 
     // React to HUD updates.
-    const onHud = (s: { health: number; collected: number; total: number }) => this.updateHud(s);
+    const onHud = (s: { health: number; maxHealth: number; collected: number; total: number }) =>
+      this.updateHud(s);
     this.game_.events.on('hud', onHud);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -70,9 +71,10 @@ export class UIScene extends Phaser.Scene {
       .setDepth(10);
   }
 
-  private updateHud(s: { health: number; collected: number; total: number }): void {
-    const hearts = '♥'.repeat(Math.max(0, s.health));
-    this.hudText.setText(`${hearts}    ★ ${s.collected}/${s.total}`);
+  private updateHud(s: { health: number; maxHealth: number; collected: number; total: number }): void {
+    const filled = '♥'.repeat(Math.max(0, s.health));
+    const empty = '♡'.repeat(Math.max(0, s.maxHealth - s.health));
+    this.hudText.setText(`${filled}${empty}    ★ ${s.collected}/${s.total}`);
   }
 
   // --- Cat bar ---

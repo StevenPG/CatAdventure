@@ -30,9 +30,18 @@ export class Player {
   private dashDamage = 0;
   private slamActive = false;
   private slamRadius = 0;
+  private slamDamage = 0;
+  private slamShake = 0;
   private specialHeld = false;
-  readonly maxHealth = TUNING.player.maxHealth;
-  health = this.maxHealth;
+  /** Current cat's max health (hearts). Set per-cat in setCat. */
+  maxHealth: number = TUNING.player.maxHealth;
+  /** Damage taken since the last respawn. Health is derived from this, so a
+   *  cat switch changes the buffer without healing or instantly killing. */
+  private wounds = 0;
+
+  get health(): number {
+    return Math.max(0, this.maxHealth - this.wounds);
+  }
 
   constructor(
     private readonly world: GameWorld,
@@ -62,9 +71,18 @@ export class Player {
     this.ability = createAbility(def.ability);
     this.animPrefix = def.spriteSheet ?? PLAYER_TEXTURE;
     this.sprite.setTexture(this.animPrefix);
+    // Preserve the feet position across a scale change. Keeping the sprite
+    // CENTER fixed would sink a bigger cat's feet into the floor; the deep
+    // penetration makes Arcade eject the body downward through the ground.
+    const feetY = this.sprite.y + this.sprite.displayHeight / 2;
     this.sprite.setScale(def.scale ?? 1);
     this.resizeBody(def.scale ?? 1);
+    this.sprite.y = feetY - this.sprite.displayHeight / 2;
     this.sprite.setTint(def.bodyColor);
+    // Switch the health buffer to the new cat's max. Clamp wounds so a switch
+    // never heals you (wounds persist) nor instantly kills you (leaves >= 1).
+    this.maxHealth = def.maxHealth ?? TUNING.player.maxHealth;
+    this.wounds = Math.min(this.wounds, this.maxHealth - 1);
     // Reset transient ability state on swap.
     this.dashUntil = 0;
     this.slamActive = false;
@@ -163,9 +181,11 @@ export class Player {
     return this.world.time.now < this.dashUntil ? this.dashDamage : 0;
   }
 
-  beginSlam(radius: number): void {
+  beginSlam(radius: number, damage: number, shake: number): void {
     this.slamActive = true;
     this.slamRadius = radius;
+    this.slamDamage = damage;
+    this.slamShake = shake;
   }
 
   // --- Per-frame ---
@@ -173,9 +193,9 @@ export class Player {
   update(now: number, deltaMs: number): void {
     // Reset double-jumps + resolve a pending slam on landing.
     if (this.body.blocked.down && this.slamActive) {
-      this.world.damageEnemiesInRadius(this.sprite.x, this.sprite.y + 16, this.slamRadius, TUNING.abilities.groundSlam.damage);
+      this.world.damageEnemiesInRadius(this.sprite.x, this.sprite.y + 16, this.slamRadius, this.slamDamage);
       this.world.shatterBreakablesInRadius(this.sprite.x, this.sprite.y + 16, this.slamRadius);
-      this.world.cameras.main.shake(120, 0.008);
+      this.world.cameras.main.shake(120, this.slamShake);
       this.slamActive = false;
     }
     this.ability?.update?.({ player: this, world: this.world, facing: this.facing }, deltaMs);
@@ -209,7 +229,7 @@ export class Player {
 
   takeDamage(now: number): boolean {
     if (now < this.invulnUntil) return false;
-    this.health -= 1;
+    this.wounds += 1;
     this.invulnUntil = now + TUNING.combat.playerInvulnMs;
     this.sprite.setTint(0xffffff);
     this.sprite.setAlpha(0.6);
@@ -223,7 +243,7 @@ export class Player {
 
   /** Refill to full and restore normal appearance (used on soft respawn). */
   resetHealth(): void {
-    this.health = this.maxHealth;
+    this.wounds = 0;
     this.sprite.setTint(this.cat.bodyColor);
     this.sprite.setAlpha(1);
   }

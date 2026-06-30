@@ -373,7 +373,12 @@ export class GameScene extends Phaser.Scene implements GameWorld {
   // --- HUD bridge ---
 
   private emitHud(): void {
-    this.events.emit('hud', { health: this.player.health, collected: this.collected, total: this.total });
+    this.events.emit('hud', {
+      health: this.player.health,
+      maxHealth: this.player.maxHealth,
+      collected: this.collected,
+      total: this.total,
+    });
   }
 
   // --- Main loop ---
