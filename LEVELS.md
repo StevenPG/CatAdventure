@@ -68,6 +68,21 @@ level's `id` and its save progress resets — ids are the key.)
 | `enemies[]`    | `{ x, y, patrol? }`. `patrol` is how far (px) it walks each way from `x` (default 80). |
 | `collectibles[]` | `{ x, y }`. A bobbing treat; counts toward the level's total. |
 | `spawn` / `exit` | Start point and the completion door. |
+| `movingPlatforms[]` | `{ x, y, width, height, toX, toY, speed? }`. Ping-pongs between its start (`x`,`y`) and (`toX`,`toY`); the cat is carried while riding. Horizontal, vertical, or diagonal. |
+| `hazards[]` | `{ x, y, width, height, damage? }`. A spike zone — contact costs health and knocks you back. |
+| `flyingEnemies[]` | `{ x, y, rangeX?, rangeY?, speed? }`. Gravity-free; drifts on a sine path. Stomp/swipe/shoot/slam to defeat, like any enemy. |
+
+All three are optional arrays on a level, and every field falls back to a
+`TUNING` default (`TUNING.movingPlatform`, `TUNING.hazards`,
+`TUNING.flyingEnemy` in [`src/config/GameConfig.ts`](src/config/GameConfig.ts))
+when omitted — so you can place one with just coordinates and tune globally, or
+override per instance.
+
+```ts
+movingPlatforms: [{ x: 940, y: 430, width: 100, height: 18, toX: 1140, toY: 430 }],
+hazards: [{ x: 720, y: 480, width: 120, height: 20 }],
+flyingEnemies: [{ x: 900, y: 280, rangeX: 90, rangeY: 28, speed: 90 }],
+```
 
 ---
 

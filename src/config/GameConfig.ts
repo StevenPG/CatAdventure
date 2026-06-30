@@ -86,6 +86,15 @@ export const TUNING = {
     panDurationMs: 850,
     invulnMs: 900,
   },
+
+  /** Platforms that travel between two points (you ride them). */
+  movingPlatform: { speed: 80 },
+
+  /** Damaging zones (spikes). Knockback is applied away/up from the hit. */
+  hazards: { damage: 1, knockbackX: 220, knockbackY: 340 },
+
+  /** Gravity-free patrolling enemies. */
+  flyingEnemy: { speed: 90, rangeX: 90, rangeY: 30 },
 } as const;
 
 export const COLORS = {
@@ -97,6 +106,11 @@ export const COLORS = {
   ground: 0x333c57,
   collectible: 0xffcd75,
   enemy: 0xef7d57,
+  flyer: 0xb18bd6,
   projectile: 0x73eff7,
   exit: 0xa7f070,
+  movingPlatform: 0x4a9c8a,
+  movingPlatformTop: 0x7fd6c2,
+  hazard: 0xb13e53,
+  hazardSpike: 0xef7d57,
 } as const;

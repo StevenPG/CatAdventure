@@ -95,6 +95,13 @@ export class PreloadScene extends Phaser.Scene {
     g.fillStyle(0xffffff, 1).fillCircle(8, 8, 7);
     g.generateTexture('projectile', 16, 16);
     g.destroy();
+
+    // A single spike tooth (base at bottom), tiled across hazard zones.
+    g = this.add.graphics();
+    g.fillStyle(0xffffff, 1);
+    g.fillTriangle(0, 16, 8, 0, 16, 16);
+    g.generateTexture('spike', 16, 16);
+    g.destroy();
   }
 
   /** Sky gradient + tileable hill silhouettes for parallax. */

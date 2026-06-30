@@ -112,6 +112,12 @@ export interface LevelDefinition {
   platforms: PlatformDef[];
   enemies: { x: number; y: number; patrol?: number }[];
   collectibles: { x: number; y: number }[];
+  /** Optional: platforms that travel between two points (you can ride them). */
+  movingPlatforms?: MovingPlatformDef[];
+  /** Optional: damaging zones (spikes). */
+  hazards?: HazardDef[];
+  /** Optional: gravity-free patrolling enemies. */
+  flyingEnemies?: FlyingEnemyDef[];
 }
 
 export interface PlatformDef {
@@ -121,6 +127,48 @@ export interface PlatformDef {
   height: number;
   /** Breakable by ground-slam. */
   breakable?: boolean;
+}
+
+/** A platform that ping-pongs between its start (x,y) and (toX,toY). The player
+ *  is carried while standing on it. x/y are the top-left at the start. */
+export interface MovingPlatformDef {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  toX: number;
+  toY: number;
+  /** Travel speed (px/s). Defaults to TUNING.movingPlatform.speed. */
+  speed?: number;
+}
+
+/** A static damaging zone (spikes). x/y is the top-left. */
+export interface HazardDef {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** Damage on contact. Defaults to TUNING.hazards.damage. */
+  damage?: number;
+}
+
+/** A flying enemy: ignores gravity, drifts on a sine path around (x,y). */
+export interface FlyingEnemyDef {
+  x: number;
+  y: number;
+  /** Horizontal half-range of the path (px). 0 = no horizontal motion. */
+  rangeX?: number;
+  /** Vertical bob amplitude (px). 0 = none. */
+  rangeY?: number;
+  /** Path speed (px/s). Defaults to TUNING.flyingEnemy.speed. */
+  speed?: number;
+}
+
+/** Common surface for ground + flying enemies, so combat treats them alike. */
+export interface EnemyLike {
+  readonly sprite: Phaser.Physics.Arcade.Sprite;
+  hurt(damage?: number): boolean;
+  update(): void;
 }
 
 export interface SaveData {

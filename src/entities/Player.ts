@@ -33,6 +33,8 @@ export class Player {
   private slamDamage = 0;
   private slamShake = 0;
   private specialHeld = false;
+  /** True while riding a moving platform (counts as grounded for jump/anim). */
+  private onPlatform = false;
   /** Current cat's max health (hearts). Set per-cat in setCat. */
   maxHealth: number = TUNING.player.maxHealth;
   /** Damage taken since the last respawn. Health is derived from this, so a
@@ -110,6 +112,14 @@ export class Player {
     this.specialHeld = held;
   }
 
+  setOnPlatform(v: boolean): void {
+    this.onPlatform = v;
+  }
+
+  private get grounded(): boolean {
+    return this.body.blocked.down || this.onPlatform;
+  }
+
   isSpecialHeld(): boolean {
     return this.specialHeld;
   }
@@ -129,8 +139,7 @@ export class Player {
   }
 
   jump(): void {
-    const grounded = this.body.blocked.down;
-    if (grounded) {
+    if (this.grounded) {
       this.jumpsRemaining = this.stats.extraJumps;
       this.launchJump();
     } else if (this.jumpsRemaining > 0) {
@@ -213,7 +222,7 @@ export class Player {
   private updateAnimation(now: number): void {
     if (now < this.attackAnimUntil) return;
     const v = this.body.velocity;
-    if (!this.body.blocked.down) {
+    if (!this.grounded) {
       this.playAnim(v.y < 0 ? 'jump' : 'fall');
     } else if (Math.abs(v.x) > 12) {
       this.playAnim('run');

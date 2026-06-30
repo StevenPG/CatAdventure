@@ -4,11 +4,14 @@ import { BACKGROUND } from '../config/assets';
 import { LEVELS } from '../data/levels';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
+import { FlyingEnemy } from '../entities/FlyingEnemy';
+import { MovingPlatform } from '../entities/MovingPlatform';
+import { Hazard } from '../entities/Hazard';
 import { Collectible } from '../entities/Collectible';
 import { CatManager, CatEvents } from '../systems/CatManager';
 import { SaveManager } from '../systems/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
-import type { CatDefinition, GameWorld, LevelDefinition } from '../types';
+import type { CatDefinition, EnemyLike, GameWorld, LevelDefinition } from '../types';
 
 interface GameInit {
   levelIndex: number;
@@ -26,8 +29,11 @@ export class GameScene extends Phaser.Scene implements GameWorld {
 
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private breakables!: Phaser.Physics.Arcade.StaticGroup;
-  private enemies: Enemy[] = [];
+  private enemies: EnemyLike[] = [];
   private enemyGroup!: Phaser.Physics.Arcade.Group;
+  private flyerGroup!: Phaser.Physics.Arcade.Group;
+  private movingPlatforms: MovingPlatform[] = [];
+  private hazards: Hazard[] = [];
   private collectibleGroup!: Phaser.Physics.Arcade.Group;
   private projectiles!: Phaser.Physics.Arcade.Group;
   private exit!: Phaser.Physics.Arcade.Image;
@@ -62,6 +68,8 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.finished = false;
     this.respawning = false;
     this.enemies = [];
+    this.movingPlatforms = [];
+    this.hazards = [];
     this.bgLayers = [];
   }
 
@@ -77,6 +85,8 @@ export class GameScene extends Phaser.Scene implements GameWorld {
 
     this.buildBackground();
     this.buildPlatforms();
+    this.buildMovingPlatforms();
+    this.buildHazards();
     this.buildExit();
     this.buildCollectibles();
     this.buildEnemies();
@@ -159,12 +169,31 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     }
   }
 
+  private buildMovingPlatforms(): void {
+    for (const def of this.level.movingPlatforms ?? []) {
+      this.movingPlatforms.push(new MovingPlatform(this, def));
+    }
+  }
+
+  private buildHazards(): void {
+    for (const def of this.level.hazards ?? []) {
+      this.hazards.push(new Hazard(this, def));
+    }
+  }
+
   private buildEnemies(): void {
     this.enemyGroup = this.physics.add.group();
     for (const e of this.level.enemies) {
       const enemy = new Enemy(this, e.x, e.y, e.patrol);
       this.enemyGroup.add(enemy.sprite);
       this.enemies.push(enemy);
+    }
+    // Flying enemies live in their own group (no platform collision).
+    this.flyerGroup = this.physics.add.group({ allowGravity: false });
+    for (const f of this.level.flyingEnemies ?? []) {
+      const flyer = new FlyingEnemy(this, f);
+      this.flyerGroup.add(flyer.sprite);
+      this.enemies.push(flyer);
     }
   }
 
@@ -179,17 +208,31 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.physics.add.collider(this.enemyGroup, this.platforms);
     this.physics.add.collider(this.enemyGroup, this.breakables);
 
+    // Moving platforms are one-way riders handled manually in update (no
+    // collider — a collider's vertical push fights the carry and slides the
+    // rider off).
+
     this.physics.add.overlap(sprite, this.enemyGroup, (_p, e) =>
+      this.onPlayerEnemy(e as Phaser.Physics.Arcade.Sprite),
+    );
+    this.physics.add.overlap(sprite, this.flyerGroup, (_p, e) =>
       this.onPlayerEnemy(e as Phaser.Physics.Arcade.Sprite),
     );
     this.physics.add.overlap(sprite, this.collectibleGroup, (_p, c) =>
       this.onCollect(c as Phaser.Physics.Arcade.Sprite),
     );
     this.physics.add.overlap(sprite, this.exit, () => this.completeLevel());
+    for (const hazard of this.hazards) {
+      this.physics.add.overlap(sprite, hazard.zone, () => this.onHazard());
+    }
 
     this.physics.add.collider(this.projectiles, this.platforms, (proj) => proj.destroy());
     this.physics.add.collider(this.projectiles, this.breakables, (proj) => proj.destroy());
     this.physics.add.overlap(this.projectiles, this.enemyGroup, (proj, e) => {
+      (proj as Phaser.Physics.Arcade.Image).destroy();
+      this.hurtEnemy(e as Phaser.Physics.Arcade.Sprite, TUNING.abilities.projectile.damage);
+    });
+    this.physics.add.overlap(this.projectiles, this.flyerGroup, (proj, e) => {
       (proj as Phaser.Physics.Arcade.Image).destroy();
       this.hurtEnemy(e as Phaser.Physics.Arcade.Sprite, TUNING.abilities.projectile.damage);
     });
@@ -283,7 +326,7 @@ export class GameScene extends Phaser.Scene implements GameWorld {
   }
 
   private hurtEnemy(enemySprite: Phaser.Physics.Arcade.Sprite, damage: number): void {
-    const enemy = enemySprite.getData('ref') as Enemy | undefined;
+    const enemy = enemySprite.getData('ref') as EnemyLike | undefined;
     enemy?.hurt(damage);
   }
 
@@ -294,6 +337,16 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.collected += 1;
     this.audio.play('sfx-collect');
     this.emitHud();
+  }
+
+  private onHazard(): void {
+    if (this.finished || this.respawning) return;
+    if (this.player.takeDamage(this.time.now)) {
+      const away = this.player.facing * -1;
+      this.player.body.setVelocity(away * TUNING.hazards.knockbackX, -TUNING.hazards.knockbackY);
+      this.emitHud();
+      if (this.player.health <= 0) this.respawnToStart();
+    }
   }
 
   // --- Win / lose ---
@@ -393,6 +446,9 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     else if (k.right.isDown || k.d.isDown) dir = 1;
     this.player.moveIntent(dir, time);
 
+    // Resolve moving-platform riding before jump input so jumping off works.
+    this.rideMovingPlatforms();
+
     if (
       Phaser.Input.Keyboard.JustDown(k.up) ||
       Phaser.Input.Keyboard.JustDown(k.w) ||
@@ -413,5 +469,28 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     }
 
     this.emitHud();
+  }
+
+  /** Moving platforms as one-way riders: move each platform, and when the cat
+   *  is on top (overlapping and not rising) snap it to the surface and carry it
+   *  by the platform's per-step delta. No collider, so the carry is exactly 1:1
+   *  and the cat doesn't slide off. */
+  private rideMovingPlatforms(): void {
+    const pb = this.player.body;
+    let riding = false;
+    for (const mp of this.movingPlatforms) {
+      mp.update();
+      const mb = mp.body;
+      const overlapX = pb.right > mb.left + 2 && pb.left < mb.right - 2;
+      const nearTop = pb.bottom >= mb.top - 10 && pb.bottom <= mb.top + 12;
+      if (!riding && overlapX && nearTop && pb.velocity.y >= -10) {
+        this.player.sprite.y += mb.top - pb.bottom; // seat feet on the surface
+        pb.setVelocityY(0);
+        this.player.sprite.x += mb.deltaX();
+        this.player.sprite.y += mb.deltaY();
+        riding = true;
+      }
+    }
+    this.player.setOnPlatform(riding);
   }
 }

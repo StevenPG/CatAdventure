@@ -77,6 +77,8 @@ export const LEVELS: LevelDefinition[] = [
       { x: 1320, y: 320 },
       { x: 1560, y: 260 },
     ],
+    movingPlatforms: [{ x: 400, y: 470, width: 90, height: 18, toX: 540, toY: 470, speed: 70 }],
+    flyingEnemies: [{ x: 1000, y: 240, rangeX: 110, rangeY: 26 }],
   },
   {
     id: 'alley',
@@ -184,6 +186,12 @@ export const LEVELS: LevelDefinition[] = [
       { x: 2405, y: 320 },
       { x: 2640, y: 440 },
     ],
+    movingPlatforms: [{ x: 2560, y: 440, width: 100, height: 18, toX: 2660, toY: 360, speed: 90 }],
+    flyingEnemies: [
+      { x: 600, y: 380, rangeX: 70, rangeY: 28 },
+      { x: 1960, y: 380, rangeX: 70, rangeY: 28 },
+      { x: 2480, y: 360, rangeX: 60, rangeY: 24 },
+    ],
   },
   {
     id: 'cellar',
@@ -219,6 +227,11 @@ export const LEVELS: LevelDefinition[] = [
       { x: 1910, y: 290 },
       { x: 2080, y: 440 },
     ],
+    hazards: [
+      { x: 720, y: 480, width: 120, height: 20 },
+      { x: 1320, y: 480, width: 120, height: 20 },
+    ],
+    flyingEnemies: [{ x: 980, y: 300, rangeX: 90, rangeY: 24 }],
   },
   {
     id: 'treetops',
@@ -257,6 +270,14 @@ export const LEVELS: LevelDefinition[] = [
       { x: 1160, y: 160 },
       { x: 2195, y: 260 },
       { x: 2440, y: 400 },
+    ],
+    movingPlatforms: [
+      { x: 1150, y: 430, width: 120, height: 18, toX: 1150, toY: 300, speed: 70 },
+      { x: 1990, y: 400, width: 120, height: 18, toX: 2090, toY: 300, speed: 80 },
+    ],
+    flyingEnemies: [
+      { x: 900, y: 280, rangeX: 90, rangeY: 30 },
+      { x: 1600, y: 250, rangeX: 100, rangeY: 30 },
     ],
   },
   {
@@ -335,6 +356,12 @@ export const LEVELS: LevelDefinition[] = [
       { x: 2270, y: 340 },
       { x: 2515, y: 260 },
     ],
+    movingPlatforms: [{ x: 940, y: 430, width: 100, height: 18, toX: 1040, toY: 430, speed: 80 }],
+    hazards: [{ x: 1180, y: 480, width: 80, height: 20 }],
+    flyingEnemies: [
+      { x: 700, y: 280, rangeX: 90, rangeY: 28 },
+      { x: 2300, y: 250, rangeX: 100, rangeY: 30 },
+    ],
   },
   {
     id: 'long-way-home',
@@ -390,6 +417,16 @@ export const LEVELS: LevelDefinition[] = [
       { x: 2910, y: 300 },
       { x: 3150, y: 260 },
       { x: 3320, y: 240 },
+    ],
+    movingPlatforms: [{ x: 1390, y: 430, width: 110, height: 18, toX: 1560, toY: 430, speed: 90 }],
+    hazards: [
+      { x: 2360, y: 480, width: 96, height: 20 },
+      { x: 2840, y: 480, width: 96, height: 20 },
+    ],
+    flyingEnemies: [
+      { x: 1000, y: 300, rangeX: 90, rangeY: 28 },
+      { x: 1800, y: 250, rangeX: 100, rangeY: 30 },
+      { x: 2600, y: 240, rangeX: 90, rangeY: 28 },
     ],
   },
 ];
