@@ -138,16 +138,34 @@ export class PreloadScene extends Phaser.Scene {
           g.fillStyle(gen.color, 1).fillRect(0, 0, 64, 64);
           g.generateTexture(key, 64, 64);
           break;
-        case 'wall': {
-          // A tileable 128x128 panel: base fill with wainscot lines + a seam,
-          // so a scrolling interior reads as a real wall.
+        case 'panel': {
+          // Tileable wainscot paneling — white lines on transparent (tinted per
+          // theme). Left seam + a mid divider + top/bottom rails.
           const s = 128;
-          g.fillStyle(gen.base, 1).fillRect(0, 0, s, s);
-          g.fillStyle(gen.line, 1);
+          g.fillStyle(0xffffff, 1);
           g.fillRect(0, 0, s, 3); // top rail
           g.fillRect(0, s - 3, s, 3); // bottom rail
           g.fillRect(0, 0, 3, s); // left seam (tiles into the next panel)
-          g.fillRect(s / 2 - 1, 12, 2, s - 24); // vertical panel divider
+          g.fillRect(s / 2 - 1, 14, 2, s - 28); // vertical panel divider
+          g.generateTexture(key, s, s);
+          break;
+        }
+        case 'stripes': {
+          // Vertical wallpaper stripes — transparent between.
+          const w = 64;
+          const h = 128;
+          g.fillStyle(0xffffff, 1);
+          g.fillRect(6, 0, 6, h);
+          g.fillRect(38, 0, 6, h);
+          g.generateTexture(key, w, h);
+          break;
+        }
+        case 'tiles': {
+          // A tile grid — lines on the top/left edges so tiling forms a grid.
+          const s = 64;
+          g.fillStyle(0xffffff, 1);
+          g.fillRect(0, 0, s, 2);
+          g.fillRect(0, 0, 2, s);
           g.generateTexture(key, s, s);
           break;
         }

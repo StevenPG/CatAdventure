@@ -88,12 +88,16 @@ export const SFX: Record<string, SfxAsset> = {
 // else a generated placeholder), and BACKGROUNDS composes them into named
 // themes a level can pick with `background: '<id>'`.
 
-/** How a placeholder background texture is drawn when no real `src` is given. */
+/** How a placeholder background texture is drawn when no real `src` is given.
+ *  The `panel`/`stripes`/`tiles` patterns draw white lines on transparent, so a
+ *  layer using one is tinted per-theme and scrolls over the room's base colour. */
 export type BgGenerator =
   | { kind: 'sky'; top: number; bottom: number }
   | { kind: 'hills'; color: number; height: number }
-  | { kind: 'wall'; base: number; line: number }
-  | { kind: 'solid'; color: number };
+  | { kind: 'solid'; color: number }
+  | { kind: 'panel' }
+  | { kind: 'stripes' }
+  | { kind: 'tiles' };
 
 export interface BgTextureAsset {
   /** Real image path (relative to public/); when set the generator is ignored. */
@@ -102,13 +106,15 @@ export interface BgTextureAsset {
 }
 
 /** Every background texture the themes reference. Drop a real image by setting
- *  `src` (e.g. 'assets/background/room.png') — the layer keeps its key. */
+ *  `src` (e.g. 'assets/background/living-room.png') — the layer keeps its key. */
 export const BG_TEXTURES: Record<string, BgTextureAsset> = {
   'bg-sky': { generate: { kind: 'sky', top: 0x1a1c2c, bottom: 0x3b3a6b } },
   'bg-hills-far': { generate: { kind: 'hills', color: 0x29366f, height: 220 } },
   'bg-hills-near': { generate: { kind: 'hills', color: 0x3b5dc9, height: 150 } },
-  'bg-room-back': { generate: { kind: 'solid', color: 0x241a2b } },
-  'bg-room-wall': { generate: { kind: 'wall', base: 0x342640, line: 0x483452 } },
+  // Shared, tintable wall patterns (white lines on transparent) for interiors.
+  'bg-panel': { generate: { kind: 'panel' } },
+  'bg-stripes': { generate: { kind: 'stripes' } },
+  'bg-tiles': { generate: { kind: 'tiles' } },
 };
 
 /** One background layer. `tile: false` = a single fixed full-screen image (best
@@ -132,6 +138,13 @@ export interface BackgroundTheme {
 
 export const DEFAULT_BACKGROUND = 'outdoor';
 
+/** An interior room: a flat wall colour with a tinted, scrolling wall pattern
+ *  over it. Generic placeholders for rooms in the house — replace the pattern
+ *  with real art by giving these BG_TEXTURES a `src`, or add per-room textures. */
+function room(wall: number, pattern: 'bg-panel' | 'bg-stripes' | 'bg-tiles', line: number): BackgroundTheme {
+  return { baseColor: wall, layers: [{ key: pattern, parallax: 0.6, tile: true, anchor: 'fill', tint: line }] };
+}
+
 export const BACKGROUNDS: Record<string, BackgroundTheme> = {
   // Outdoor: gradient sky + two parallax hill bands (the original look).
   outdoor: {
@@ -142,13 +155,15 @@ export const BACKGROUNDS: Record<string, BackgroundTheme> = {
       { key: 'bg-hills-near', parallax: 0.45, anchor: 'bottom', height: 150 },
     ],
   },
-  // Interior room: a fixed dark backing plus a wall pattern that scrolls with
-  // the camera (slight parallax) so it reads as a room you move through.
-  room: {
-    baseColor: 0x241a2b,
-    layers: [
-      { key: 'bg-room-back', parallax: 0, tile: false, anchor: 'fill' },
-      { key: 'bg-room-wall', parallax: 0.65, tile: true, anchor: 'fill' },
-    ],
-  },
+
+  // House rooms (generic placeholders — swap in real art later per BG_TEXTURES).
+  basement: room(0x2b2f36, 'bg-panel', 0x3f454f), // cool concrete + paneling
+  'living-room': room(0x5c4736, 'bg-stripes', 0x715845), // warm wall + wallpaper
+  bedroom: room(0x3a3f5c, 'bg-stripes', 0x4a5170), // dusty blue + wallpaper
+  kitchen: room(0x55503f, 'bg-tiles', 0x6b6650), // warm cream + tile
+  bathroom: room(0x2f4a49, 'bg-tiles', 0x3f5f5e), // teal + tile
+  hallway: room(0x3a322e, 'bg-panel', 0x4a4038), // neutral + paneling
+  attic: room(0x2e241c, 'bg-panel', 0x3f3020), // dark wood + paneling
+  // Generic interior alias (kept so any older `background: 'room'` still works).
+  room: room(0x241a2b, 'bg-panel', 0x3a2e40),
 };

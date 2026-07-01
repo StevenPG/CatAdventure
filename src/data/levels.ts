@@ -269,7 +269,7 @@ export const LEVELS: LevelDefinition[] = [
     name: 'The Cellar',
     width: 3400,
     height: 540,
-    background: 'room',
+    background: 'basement',
     spawn: { x: 70, y: 430 },
     exit: { x: 3320, y: 440 },
     platforms: [
@@ -386,7 +386,7 @@ export const LEVELS: LevelDefinition[] = [
     name: 'The Gutter',
     width: 2800,
     height: 540,
-    background: 'room',
+    background: 'bathroom',
     spawn: { x: 70, y: 430 },
     exit: { x: 2700, y: 236 },
     platforms: [

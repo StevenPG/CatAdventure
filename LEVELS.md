@@ -48,12 +48,15 @@ in the level select automatically.
 [`src/config/assets.ts`](src/config/assets.ts):
 
 - `'outdoor'` (default) — gradient sky + parallax hills.
-- `'room'` — a scrolling interior: fixed dark backing plus a wall pattern that
-  moves at slight parallax, so it reads as a room you travel through.
+- **House rooms** (generic placeholders, scrolling interiors): `'basement'`,
+  `'living-room'`, `'bedroom'`, `'kitchen'`, `'bathroom'`, `'hallway'`,
+  `'attic'` (plus a generic `'room'`). Each is a wall colour with a scrolling
+  pattern (paneling / wallpaper stripes / tile grid).
 
-Add your own theme (a cave, a hallway, a painted backdrop) by adding an entry to
-`BACKGROUNDS`, then set `background: '<id>'`. Real background art drops in via
-`BG_TEXTURES` — see [ANIMATION.md → Backgrounds](ANIMATION.md#backgrounds).
+Add your own theme by adding an entry to `BACKGROUNDS`, then set
+`background: '<id>'`. Real background art (e.g. photos of your actual rooms)
+drops in via `BG_TEXTURES` — see
+[ANIMATION.md → Backgrounds](ANIMATION.md#backgrounds).
 
 ### Pits are real
 
