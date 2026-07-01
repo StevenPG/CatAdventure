@@ -95,6 +95,12 @@ export const TUNING = {
 
   /** Gravity-free patrolling enemies. */
   flyingEnemy: { speed: 90, rangeX: 90, rangeY: 30 },
+
+  /** Sprite-level visual quirks (see QuirkId), purely cosmetic. */
+  quirks: {
+    /** A continuous side-to-side rocking tremor layered over any animation. */
+    wobble: { angleDeg: 9, jitterDeg: 3, speed: 5.5, jitterSpeed: 14.8 },
+  },
 } as const;
 
 export const COLORS = {

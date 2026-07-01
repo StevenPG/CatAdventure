@@ -98,6 +98,19 @@ For per-cat real art, give each cat its own sheet key in `SHEETS` and set
 `PreloadScene.createCatAnimations()` already builds the standard set for every
 distinct cat sheet.
 
+### Sprite-level quirks (not animations)
+
+Some cats have a physical trait that isn't really a *pose* — Wobble's
+continuous tremor, for example. These are **quirks** (`QuirkId` in
+`types.ts`), layered on top of whatever animation is already playing, applied
+in `Player.updateQuirk()`. They only ever touch `sprite.angle` (or another
+transform Arcade Physics never writes to), so they're safe to set every frame
+with zero risk of fighting the physics body's position/velocity sync.
+
+To add one: add an id to `QuirkId`, add its tuning to `TUNING.quirks` in
+`GameConfig.ts`, branch on it in `Player.updateQuirk()`, and set
+`quirk: '<id>'` on a cat in `cats.ts`.
+
 ---
 
 ## Replace the background

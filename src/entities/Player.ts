@@ -81,6 +81,7 @@ export class Player {
     this.resizeBody(def.scale ?? 1);
     this.sprite.y = feetY - this.sprite.displayHeight / 2;
     this.sprite.setTint(def.bodyColor);
+    this.sprite.setAngle(0); // reset any quirk rotation from the previous cat
     // Switch the health buffer to the new cat's max. Clamp wounds so a switch
     // never heals you (wounds persist) nor instantly kills you (leaves >= 1).
     this.maxHealth = def.maxHealth ?? TUNING.player.maxHealth;
@@ -216,6 +217,18 @@ export class Player {
     }
 
     this.updateAnimation(now);
+    this.updateQuirk(now);
+  }
+
+  /** Purely cosmetic per-frame flair. Only ever touches sprite.angle, which
+   *  Arcade Physics never writes to — safe to set every frame with no fight
+   *  against the body's position/velocity sync. */
+  private updateQuirk(now: number): void {
+    if (this.cat.quirk !== 'wobble') return;
+    const cfg = TUNING.quirks.wobble;
+    const t = now / 1000;
+    const angle = Math.sin(t * cfg.speed) * cfg.angleDeg + Math.sin(t * cfg.jitterSpeed + 1) * cfg.jitterDeg;
+    this.sprite.setAngle(angle);
   }
 
   /** Pick the right animation from physics state. Attack holds briefly. */

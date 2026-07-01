@@ -23,6 +23,11 @@ export type EffectId =
   | 'night-vision'
   | 'warm-glow';
 
+/** Sprite-level (not screen-level) visual quirks — a physical trait of the cat
+ *  itself, layered on top of whatever animation is playing. Add new ids here
+ *  and apply them in Player. */
+export type QuirkId = 'none' | 'wobble';
+
 export interface CatStats {
   /** Horizontal run speed (px/s). */
   speed: number;
@@ -69,6 +74,8 @@ export interface CatDefinition {
   stats: CatStats;
   ability: AbilityId;
   effect: EffectId;
+  /** Sprite-level visual quirk (e.g. a wobble/tremor). Defaults to 'none'. */
+  quirk?: QuirkId;
   sounds: CatSounds;
 }
 
