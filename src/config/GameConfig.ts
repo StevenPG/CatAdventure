@@ -31,6 +31,13 @@ export const TUNING = {
     /** Base melee attack hitbox width (px). "Longer reach" cats scale this up. */
     baseAttackReach: 56,
     maxHealth: 9,
+    /** Grace period (ms) to still ground-jump after walking off a ledge. */
+    coyoteMs: 90,
+    /** Pressing jump this long (ms) before landing still triggers the jump. */
+    jumpBufferMs: 120,
+    /** Releasing jump while rising multiplies upward velocity by this
+     *  (variable jump height — tap for short hops, hold for full jumps). */
+    jumpCutMultiplier: 0.45,
   },
 
   combat: {
@@ -119,4 +126,6 @@ export const COLORS = {
   movingPlatformTop: 0x7fd6c2,
   hazard: 0xb13e53,
   hazardSpike: 0xef7d57,
+  checkpointInactive: 0x566c86,
+  checkpointActive: 0xffcd75,
 } as const;

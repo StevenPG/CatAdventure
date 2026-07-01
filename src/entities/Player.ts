@@ -38,6 +38,8 @@ export class Player {
   private specialHeld = false;
   /** True while riding a moving platform (counts as grounded for jump/anim). */
   private onPlatform = false;
+  private lastGroundedAt = -Infinity;
+  private jumpBufferedUntil = -Infinity;
   /** Current cat's max health (hearts). Set per-cat in setCat. */
   maxHealth: number = TUNING.player.maxHealth;
   /** Damage taken since the last respawn. Health is derived from this, so a
@@ -145,14 +147,31 @@ export class Player {
     }
   }
 
-  jump(): void {
-    if (this.grounded) {
-      this.jumpsRemaining = this.stats.extraJumps;
-      this.launchJump();
+  /** Jump input. Ground jumps get coyote time (a grace window after walking
+   *  off a ledge) and buffering (pressing just before landing still fires). */
+  requestJump(now: number): void {
+    if (this.grounded || now - this.lastGroundedAt <= TUNING.player.coyoteMs) {
+      this.doGroundJump();
     } else if (this.jumpsRemaining > 0) {
       this.jumpsRemaining--;
       this.launchJump();
+    } else {
+      this.jumpBufferedUntil = now + TUNING.player.jumpBufferMs;
     }
+  }
+
+  /** Variable jump height: releasing the jump key while rising cuts the arc. */
+  cutJump(): void {
+    if (this.body.velocity.y < 0) {
+      this.body.setVelocityY(this.body.velocity.y * TUNING.player.jumpCutMultiplier);
+    }
+  }
+
+  private doGroundJump(): void {
+    this.jumpsRemaining = this.stats.extraJumps;
+    this.lastGroundedAt = -Infinity; // consume coyote so it can't double-fire
+    this.jumpBufferedUntil = -Infinity;
+    this.launchJump();
   }
 
   private launchJump(): void {
@@ -207,6 +226,12 @@ export class Player {
   // --- Per-frame ---
 
   update(now: number, deltaMs: number): void {
+    // Track grounded time (coyote) and fire a buffered jump on landing.
+    if (this.grounded) {
+      this.lastGroundedAt = now;
+      if (now < this.jumpBufferedUntil) this.doGroundJump();
+    }
+
     // Reset double-jumps + resolve a pending slam on landing.
     if (this.body.blocked.down && this.slamActive) {
       this.world.damageEnemiesInRadius(this.sprite.x, this.sprite.y + 16, this.slamRadius, this.slamDamage);

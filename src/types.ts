@@ -128,6 +128,9 @@ export interface LevelDefinition {
   hazards?: HazardDef[];
   /** Optional: gravity-free patrolling enemies. */
   flyingEnemies?: FlyingEnemyDef[];
+  /** Optional: respawn checkpoints. `x`/`y` is where the marker stands (y = the
+   *  platform top). Passing one makes it the new soft-respawn point. */
+  checkpoints?: { x: number; y: number }[];
 }
 
 export interface PlatformDef {

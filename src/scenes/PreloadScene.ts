@@ -150,6 +150,15 @@ export class PreloadScene extends Phaser.Scene {
     g.generateTexture('spike', 16, 16);
     g.destroy();
 
+    // Checkpoint marker — a pole with a flag, tinted gray/gold in-scene.
+    // Origin is bottom-centre when placed (24x52; pole base at the bottom).
+    g = this.add.graphics();
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(10, 0, 4, 52); // pole
+    g.fillTriangle(14, 2, 14, 18, 24, 10); // flag
+    g.generateTexture('checkpoint', 24, 52);
+    g.destroy();
+
     // UI chip — a rounded square, tinted in the HUD (cat-bar slots, panels).
     g = this.add.graphics();
     g.fillStyle(0xffffff, 1).fillRoundedRect(0, 0, 32, 32, 9);

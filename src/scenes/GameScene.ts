@@ -44,6 +44,9 @@ export class GameScene extends Phaser.Scene implements GameWorld {
   private total = 0;
   private finished = false;
   private respawning = false;
+  /** Where the soft respawn returns to — the spawn, or the last checkpoint. */
+  private respawnPoint = { x: 0, y: 0 };
+  private checkpointMarkers: { x: number; y: number; marker: Phaser.GameObjects.Image; hit: boolean }[] = [];
 
   private keys!: {
     left: Phaser.Input.Keyboard.Key;
@@ -67,6 +70,8 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.collected = 0;
     this.finished = false;
     this.respawning = false;
+    this.respawnPoint = { ...this.level.spawn };
+    this.checkpointMarkers = [];
     this.enemies = [];
     this.movingPlatforms = [];
     this.hazards = [];
@@ -87,6 +92,7 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.buildPlatforms();
     this.buildMovingPlatforms();
     this.buildHazards();
+    this.buildCheckpoints();
     this.buildExit();
     this.buildCollectibles();
     this.buildEnemies();
@@ -197,6 +203,29 @@ export class GameScene extends Phaser.Scene implements GameWorld {
   private buildHazards(): void {
     for (const def of this.level.hazards ?? []) {
       this.hazards.push(new Hazard(this, def));
+    }
+  }
+
+  private buildCheckpoints(): void {
+    for (const cp of this.level.checkpoints ?? []) {
+      const marker = this.add
+        .image(cp.x, cp.y, 'checkpoint')
+        .setOrigin(0.5, 1)
+        .setTint(COLORS.checkpointInactive)
+        .setDepth(1);
+      this.checkpointMarkers.push({ x: cp.x, y: cp.y, marker, hit: false });
+    }
+  }
+
+  /** Activate any checkpoint the cat has run past. */
+  private updateCheckpoints(): void {
+    for (const cp of this.checkpointMarkers) {
+      if (cp.hit || this.player.sprite.x < cp.x) continue;
+      cp.hit = true;
+      cp.marker.setTint(COLORS.checkpointActive);
+      this.respawnPoint = { x: cp.x, y: cp.y - 40 };
+      this.audio.play('sfx-select');
+      this.tweens.add({ targets: cp.marker, scale: { from: 1.4, to: 1 }, duration: 250, ease: 'Back.out' });
     }
   }
 
@@ -406,13 +435,14 @@ export class GameScene extends Phaser.Scene implements GameWorld {
       .setAlpha(0);
     this.tweens.add({ targets: msg, alpha: 1, duration: 200 });
 
-    // Beat to read the message, then scroll back to the start.
+    // Beat to read the message, then scroll back to the respawn point (the
+    // level start, or the last checkpoint passed).
     this.time.delayedCall(TUNING.respawn.messageDelayMs, () => {
       cam.stopFollow();
-      this.player.sprite.setPosition(this.level.spawn.x, this.level.spawn.y);
+      this.player.sprite.setPosition(this.respawnPoint.x, this.respawnPoint.y);
       this.player.resetHealth();
       this.emitHud();
-      cam.pan(this.level.spawn.x, this.level.spawn.y, TUNING.respawn.panDurationMs, 'Sine.easeInOut');
+      cam.pan(this.respawnPoint.x, this.respawnPoint.y, TUNING.respawn.panDurationMs, 'Sine.easeInOut');
       cam.once(Phaser.Cameras.Scene2D.Events.PAN_COMPLETE, () => {
         cam.startFollow(this.player.sprite, true, 0.12, 0.12);
         body.setAllowGravity(true);
@@ -475,13 +505,22 @@ export class GameScene extends Phaser.Scene implements GameWorld {
       Phaser.Input.Keyboard.JustDown(k.w) ||
       Phaser.Input.Keyboard.JustDown(k.space)
     ) {
-      this.player.jump();
+      this.player.requestJump(time);
+    }
+    // Variable jump height: releasing jump while rising cuts the arc.
+    if (
+      Phaser.Input.Keyboard.JustUp(k.up) ||
+      Phaser.Input.Keyboard.JustUp(k.w) ||
+      Phaser.Input.Keyboard.JustUp(k.space)
+    ) {
+      this.player.cutJump();
     }
     if (Phaser.Input.Keyboard.JustDown(k.attack)) this.player.attack(time);
     this.player.setSpecialHeld(k.special.isDown);
     if (Phaser.Input.Keyboard.JustDown(k.special)) this.player.useAbility(time);
 
     this.player.update(time, delta);
+    this.updateCheckpoints();
     for (const enemy of this.enemies) {
       enemy.update();
       // An enemy that walked off into a pit falls out of the open world bottom;

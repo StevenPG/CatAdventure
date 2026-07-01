@@ -90,6 +90,7 @@ level's `id` and its save progress resets — ids are the key.)
 | `movingPlatforms[]` | `{ x, y, width, height, toX, toY, speed? }`. Ping-pongs between its start (`x`,`y`) and (`toX`,`toY`); the cat is carried while riding. Horizontal, vertical, or diagonal. |
 | `hazards[]` | `{ x, y, width, height, damage? }`. A spike zone — contact costs health and knocks you back. |
 | `flyingEnemies[]` | `{ x, y, rangeX?, rangeY?, speed? }`. Gravity-free; drifts on a sine path. Stomp/swipe/shoot/slam to defeat, like any enemy. |
+| `checkpoints[]` | `{ x, y }`. A flag marker (y = the platform top it stands on). Running past one makes it the soft-respawn point — recommended for levels over ~2500px. |
 
 All three are optional arrays on a level, and every field falls back to a
 `TUNING` default (`TUNING.movingPlatform`, `TUNING.hazards`,

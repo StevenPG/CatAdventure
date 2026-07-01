@@ -21,6 +21,7 @@ export const LEVELS: LevelDefinition[] = [
     background: 'outdoor',
     spawn: { x: 80, y: 420 },
     exit: { x: 4120, y: 440 },
+    checkpoints: [{ x: 2450, y: 500 }],
     platforms: [
       { x: 0, y: GROUND_Y, width: 900, height: 40 },
       { x: 1040, y: GROUND_Y, width: 1200, height: 40 },
@@ -75,6 +76,7 @@ export const LEVELS: LevelDefinition[] = [
     background: 'outdoor',
     spawn: { x: 80, y: 420 },
     exit: { x: 3100, y: 220 },
+    checkpoints: [{ x: 1820, y: 260 }],
     platforms: [
       { x: 0, y: GROUND_Y, width: 400, height: 40 },
       { x: 520, y: 440, width: 160, height: 24 },
@@ -121,6 +123,7 @@ export const LEVELS: LevelDefinition[] = [
     background: 'outdoor',
     spawn: { x: 70, y: 430 },
     exit: { x: 3320, y: 440 },
+    checkpoints: [{ x: 1700, y: 500 }],
     platforms: [
       { x: 0, y: GROUND_Y, width: 680, height: 40 },
       { x: 820, y: GROUND_Y, width: 680, height: 40 },
@@ -167,6 +170,7 @@ export const LEVELS: LevelDefinition[] = [
     background: 'outdoor',
     spawn: { x: 80, y: 430 },
     exit: { x: 2700, y: 216 },
+    checkpoints: [{ x: 1500, y: 500 }],
     platforms: [
       { x: 0, y: GROUND_Y, width: 620, height: 40 },
       { x: 780, y: GROUND_Y, width: 1400, height: 40 },
@@ -216,6 +220,7 @@ export const LEVELS: LevelDefinition[] = [
     background: 'outdoor',
     spawn: { x: 70, y: 430 },
     exit: { x: 4120, y: 440 },
+    checkpoints: [{ x: 2100, y: 500 }],
     platforms: [
       { x: 0, y: GROUND_Y, width: 520, height: 40 },
       { x: 680, y: GROUND_Y, width: 520, height: 40 },
@@ -272,6 +277,7 @@ export const LEVELS: LevelDefinition[] = [
     background: 'basement',
     spawn: { x: 70, y: 430 },
     exit: { x: 3320, y: 440 },
+    checkpoints: [{ x: 1700, y: 500 }],
     platforms: [
       { x: 0, y: GROUND_Y, width: 3400, height: 40 }, // solid floor, no pits
       // breakable walls — smash through (Umbra/Bitty) or jump over
@@ -327,6 +333,7 @@ export const LEVELS: LevelDefinition[] = [
     background: 'outdoor',
     spawn: { x: 70, y: 430 },
     exit: { x: 3700, y: 440 },
+    checkpoints: [{ x: 2020, y: 500 }],
     platforms: [
       { x: 0, y: GROUND_Y, width: 520, height: 40 },
       { x: 1900, y: GROUND_Y, width: 240, height: 40 },
@@ -389,6 +396,7 @@ export const LEVELS: LevelDefinition[] = [
     background: 'bathroom',
     spawn: { x: 70, y: 430 },
     exit: { x: 2700, y: 236 },
+    checkpoints: [{ x: 1400, y: 500 }],
     platforms: [
       { x: 0, y: GROUND_Y, width: 2800, height: 40 },
       { x: 220, y: 400, width: 120, height: 24 },
@@ -441,6 +449,7 @@ export const LEVELS: LevelDefinition[] = [
     background: 'outdoor',
     spawn: { x: 70, y: 430 },
     exit: { x: 3920, y: 440 },
+    checkpoints: [{ x: 2100, y: 500 }],
     platforms: [
       { x: 0, y: GROUND_Y, width: 900, height: 40 },
       { x: 1080, y: GROUND_Y, width: 760, height: 40 },
@@ -503,6 +512,7 @@ export const LEVELS: LevelDefinition[] = [
     background: 'outdoor',
     spawn: { x: 70, y: 430 },
     exit: { x: 4700, y: 236 },
+    checkpoints: [{ x: 1700, y: 500 }, { x: 3400, y: 500 }],
     platforms: [
       { x: 0, y: GROUND_Y, width: 640, height: 40 },
       { x: 820, y: GROUND_Y, width: 560, height: 40 },
