@@ -30,6 +30,8 @@ export class UIScene extends Phaser.Scene {
   private treatsText!: Phaser.GameObjects.Text;
   private nameText!: Phaser.GameObjects.Text;
   private toast!: Phaser.GameObjects.Text;
+  private helpPanel!: Phaser.GameObjects.Container;
+  private helpPinned = false;
 
   // Screen effect layer.
   private vignette!: Phaser.GameObjects.Image;
@@ -46,6 +48,7 @@ export class UIScene extends Phaser.Scene {
     this.buildHud();
     this.buildCatBar();
     this.buildToast();
+    this.buildHelp();
 
     // React to cat switches.
     const onChange = (cat: CatDefinition, index: number) => this.onCatChanged(cat, index);
@@ -183,6 +186,65 @@ export class UIScene extends Phaser.Scene {
     this.tweens.killTweensOf(this.toast);
     this.toast.setAlpha(1);
     this.tweens.add({ targets: this.toast, alpha: 0, delay: 1400, duration: 600 });
+  }
+
+  // --- Controls help (always available, bottom-left) ---
+
+  private buildHelp(): void {
+    const lines = [
+      'Move       ← →  /  A D',
+      'Jump       ↑ / W / Space',
+      'Attack     J',
+      'Special    K   (hold to glide / hover)',
+      'Switch cat Tab / Shift+Tab · or click a face',
+      'Pause      Esc / P',
+    ];
+    const panelW = 320;
+    const panelH = 176;
+    const px = 16;
+    const py = GAME_HEIGHT - 56 - panelH;
+
+    const panel = this.add.graphics().fillStyle(0x14151f, 0.9).fillRoundedRect(px, py, panelW, panelH, 12);
+    panel.lineStyle(2, 0x3b5dc9, 1).strokeRoundedRect(px, py, panelW, panelH, 12);
+    const heading = this.add.text(px + 16, py + 12, 'Controls', {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '18px',
+      color: '#ffcd75',
+      fontStyle: 'bold',
+    });
+    const body = this.add.text(px + 16, py + 44, lines.join('\n'), {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '15px',
+      color: '#e6ebf5',
+      lineSpacing: 6,
+    });
+    this.helpPanel = this.add.container(0, 0, [panel, heading, body]).setScrollFactor(0).setDepth(30).setVisible(false);
+
+    // Always-visible "?" chip that reveals the panel on hover (and toggles it
+    // pinned on click, for touch).
+    const cx = 36;
+    const cy = GAME_HEIGHT - 30;
+    const chip = this.add
+      .image(cx, cy, 'ui-chip')
+      .setDisplaySize(34, 34)
+      .setTint(0x3b5dc9)
+      .setScrollFactor(0)
+      .setDepth(31)
+      .setInteractive({ useHandCursor: true });
+    this.add
+      .text(cx, cy, '?', { fontFamily: 'system-ui, sans-serif', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(32);
+
+    chip.on('pointerover', () => this.helpPanel.setVisible(true));
+    chip.on('pointerout', () => {
+      if (!this.helpPinned) this.helpPanel.setVisible(false);
+    });
+    chip.on('pointerdown', () => {
+      this.helpPinned = !this.helpPinned;
+      this.helpPanel.setVisible(this.helpPinned);
+    });
   }
 
   // --- Screen effect layer ---
