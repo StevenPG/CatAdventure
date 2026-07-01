@@ -70,6 +70,13 @@ export class SaveManager {
     this.persist();
   }
 
+  /** Clear one level's stats (completion + treats). Unlock progression is kept
+   *  so you don't lock yourself out of later levels. */
+  resetLevel(levelId: string): void {
+    delete this.data.levelStats[levelId];
+    this.persist();
+  }
+
   reset(): void {
     this.data = structuredClone(EMPTY);
     this.persist();
