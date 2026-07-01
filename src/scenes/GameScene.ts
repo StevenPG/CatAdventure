@@ -242,7 +242,7 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     );
     this.physics.add.overlap(sprite, this.exit, () => this.completeLevel());
     for (const hazard of this.hazards) {
-      this.physics.add.overlap(sprite, hazard.zone, () => this.onHazard());
+      this.physics.add.overlap(sprite, hazard.zone, () => this.onHazard(hazard));
     }
 
     this.physics.add.collider(this.projectiles, this.platforms, (proj) => proj.destroy());
@@ -358,10 +358,12 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.emitHud();
   }
 
-  private onHazard(): void {
+  private onHazard(hazard: Hazard): void {
     if (this.finished || this.respawning) return;
     if (this.player.takeDamage(this.time.now)) {
-      const away = this.player.facing * -1;
+      // Knock away from the hazard's centre (not the facing direction, which
+      // could shove the cat deeper into a spike zone it backed into).
+      const away = this.player.sprite.x < hazard.zone.x ? -1 : 1;
       this.player.body.setVelocity(away * TUNING.hazards.knockbackX, -TUNING.hazards.knockbackY);
       this.emitHud();
       if (this.player.health <= 0) this.respawnToStart();
@@ -480,7 +482,12 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     if (Phaser.Input.Keyboard.JustDown(k.special)) this.player.useAbility(time);
 
     this.player.update(time, delta);
-    for (const enemy of this.enemies) enemy.update();
+    for (const enemy of this.enemies) {
+      enemy.update();
+      // An enemy that walked off into a pit falls out of the open world bottom;
+      // destroy it so it doesn't fall (and update) forever.
+      if (enemy.sprite.active && enemy.sprite.y > this.level.height + 400) enemy.sprite.destroy();
+    }
 
     // Fell off the world — scroll back to the start.
     if (this.player.sprite.y > this.level.height + 160) {

@@ -131,7 +131,10 @@ export class UIScene extends Phaser.Scene {
         .setScrollFactor(0)
         .setDepth(10)
         .setInteractive({ useHandCursor: true });
-      chip.on('pointerdown', () => this.game_.catManager.selectById(cat.id));
+      chip.on('pointerdown', () => {
+        if (this.game_.sys.isPaused()) return; // no switching under the pause overlay
+        this.game_.catManager.selectById(cat.id);
+      });
       const face = this.add
         .image(x, y, 'cat-face')
         .setDisplaySize(FACE * 0.82, FACE * 0.82)

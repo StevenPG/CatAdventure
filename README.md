@@ -4,9 +4,11 @@ A 2D sidescroller — a love letter to my cats. Switch between **13 cats** on th
 fly, each with unique stats, a special ability, and (for some) a screen effect.
 Built to run in any browser.
 
-> Sprites and sounds are placeholders for now (procedurally generated shapes,
-> stubbed audio). Real art and audio drop in by editing data — see
-> [Adding your art & sound](#adding-your-art--sound).
+> Every sprite and sound is a real placeholder **file** under `public/assets/`.
+> Using your own art or audio = overwriting the matching file — see
+> [public/assets/README.md](public/assets/README.md). If a file is missing
+> (e.g. a brand-new cat with no PNG yet), the game generates a placeholder at
+> runtime, so nothing ever breaks on a missing asset.
 
 ## Running it
 
@@ -16,9 +18,6 @@ npm run dev      # http://localhost:5173 — hot reload
 npm run build    # typecheck + production build to dist/
 npm run preview  # serve the production build
 ```
-
-No assets to download — the game generates placeholder graphics at runtime, so
-it runs immediately after `npm install`.
 
 ## Controls
 

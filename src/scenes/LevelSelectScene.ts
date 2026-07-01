@@ -205,7 +205,7 @@ export class LevelSelectScene extends Phaser.Scene {
   private setupKeys(save: SaveManager): void {
     this.input.keyboard?.on('keydown', (e: KeyboardEvent) => {
       if (this.modalOpen) return;
-      const n = Number.parseInt(e.key, 10);
+      const n = e.key === '0' ? 10 : Number.parseInt(e.key, 10); // 0 = level 10
       if (Number.isNaN(n)) return;
       const index = n - 1;
       if (index >= 0 && index < LEVELS.length && index <= save.unlockedLevel) {

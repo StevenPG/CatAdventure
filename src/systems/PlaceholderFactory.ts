@@ -9,8 +9,9 @@ import type { ToneSpec } from '../config/assets';
  * Shapes are drawn white (facial features dark) so they tint cleanly per-cat.
  */
 export const PlaceholderFactory = {
-  /** Build a multi-frame spritesheet PNG (data URI). */
-  makeSheet(generator: 'cat' | 'enemy', frameW: number, frameH: number, frameCount: number): string {
+  /** Build a multi-frame spritesheet PNG (data URI). `color` fills the body
+   *  (e.g. '#9aa1ab' for a fallback cat); defaults to white for tinting. */
+  makeSheet(generator: 'cat' | 'enemy', frameW: number, frameH: number, frameCount: number, color = '#ffffff'): string {
     const canvas = document.createElement('canvas');
     canvas.width = frameW * frameCount;
     canvas.height = frameH;
@@ -18,8 +19,8 @@ export const PlaceholderFactory = {
     for (let i = 0; i < frameCount; i++) {
       ctx.save();
       ctx.translate(i * frameW, 0);
-      if (generator === 'cat') drawCatFrame(ctx, frameW, frameH, i);
-      else drawEnemyFrame(ctx, frameW, frameH, i);
+      if (generator === 'cat') drawCatFrame(ctx, frameW, frameH, i, color);
+      else drawEnemyFrame(ctx, frameW, frameH, i, color);
       ctx.restore();
     }
     return canvas.toDataURL('image/png');
@@ -83,7 +84,7 @@ interface CatPose {
  *   0-2 idle (breathe + blink), 3-6 run cycle, 7 jump, 8 fall, 9 attack.
  * Real art should follow this frame ordering (see public/assets/README.md).
  */
-function drawCatFrame(ctx: CanvasRenderingContext2D, w: number, h: number, frame: number): void {
+function drawCatFrame(ctx: CanvasRenderingContext2D, w: number, h: number, frame: number, color: string): void {
   const base: CatPose = {
     top: 18, bodyH: 24, lean: 0, squash: 1, earBack: 0, eyes: 'open',
     frontLeg: 7, backLeg: -7, tailLift: 0.35, paw: false, mouth: false,
@@ -100,11 +101,11 @@ function drawCatFrame(ctx: CanvasRenderingContext2D, w: number, h: number, frame
     { ...base, top: 21, bodyH: 21, squash: 1.18, tailLift: 0.15, frontLeg: 12, backLeg: -12 },       // 8 fall (spread)
     { ...base, lean: 4, eyes: 'narrow', paw: true, mouth: true, tailLift: 0.45 },     // 9 attack
   ];
-  drawCat(ctx, w, h, poses[frame] ?? base);
+  drawCat(ctx, w, h, poses[frame] ?? base, color);
 }
 
-function drawCat(ctx: CanvasRenderingContext2D, w: number, h: number, p: CatPose): void {
-  const white = '#ffffff';
+function drawCat(ctx: CanvasRenderingContext2D, w: number, h: number, p: CatPose, color: string): void {
+  const white = color;
   const dark = '#1a1c2c';
   const cx = w / 2;
   const bodyW = 26 * p.squash;
@@ -198,7 +199,7 @@ interface EnemyPose {
  * Six enemy poses for a 36x36 sheet:
  *   0-1 idle (blink), 2-5 bouncy walk cycle (alternating feet).
  */
-function drawEnemyFrame(ctx: CanvasRenderingContext2D, w: number, h: number, frame: number): void {
+function drawEnemyFrame(ctx: CanvasRenderingContext2D, w: number, h: number, frame: number, color: string): void {
   const base: EnemyPose = { bob: 0, squash: 1, blink: false, footL: -6, footR: 6 };
   const poses: EnemyPose[] = [
     { ...base },                                              // 0 idle
@@ -208,11 +209,11 @@ function drawEnemyFrame(ctx: CanvasRenderingContext2D, w: number, h: number, fra
     { ...base, footL: -4, footR: 9 },                         // 4 walk (right lead)
     { ...base, bob: 3, squash: 1.06 },                        // 5 walk (bounce up)
   ];
-  drawEnemy(ctx, w, h, poses[frame] ?? base);
+  drawEnemy(ctx, w, h, poses[frame] ?? base, color);
 }
 
-function drawEnemy(ctx: CanvasRenderingContext2D, w: number, h: number, p: EnemyPose): void {
-  const white = '#ffffff';
+function drawEnemy(ctx: CanvasRenderingContext2D, w: number, h: number, p: EnemyPose, color: string): void {
+  const white = color;
   const dark = '#1a1c2c';
   const cx = w / 2;
   const bodyW = 30 * p.squash;
