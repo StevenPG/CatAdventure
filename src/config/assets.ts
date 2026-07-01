@@ -83,15 +83,72 @@ export const SFX: Record<string, SfxAsset> = {
   'sfx-collect': { tone: { freq: 800, sweepTo: 1200, durationMs: 120, type: 'sine', volume: 0.22 } },
 };
 
-// --- Background (parallax) ---------------------------------------------------
-// Generated from colors below. For real art, load images for these keys in
-// PreloadScene and skip the generators.
+// --- Backgrounds -------------------------------------------------------------
+// Two pieces: BG_TEXTURES declares every background image (real file via `src`,
+// else a generated placeholder), and BACKGROUNDS composes them into named
+// themes a level can pick with `background: '<id>'`.
 
-export const BACKGROUND = {
-  skyTop: 0x1a1c2c,
-  skyBottom: 0x3b3a6b,
-  layers: [
-    { key: 'bg-hills-far', color: 0x29366f, height: 220, parallax: 0.2 },
-    { key: 'bg-hills-near', color: 0x3b5dc9, height: 150, parallax: 0.45 },
-  ],
-} as const;
+/** How a placeholder background texture is drawn when no real `src` is given. */
+export type BgGenerator =
+  | { kind: 'sky'; top: number; bottom: number }
+  | { kind: 'hills'; color: number; height: number }
+  | { kind: 'wall'; base: number; line: number }
+  | { kind: 'solid'; color: number };
+
+export interface BgTextureAsset {
+  /** Real image path (relative to public/); when set the generator is ignored. */
+  src?: string;
+  generate: BgGenerator;
+}
+
+/** Every background texture the themes reference. Drop a real image by setting
+ *  `src` (e.g. 'assets/background/room.png') — the layer keeps its key. */
+export const BG_TEXTURES: Record<string, BgTextureAsset> = {
+  'bg-sky': { generate: { kind: 'sky', top: 0x1a1c2c, bottom: 0x3b3a6b } },
+  'bg-hills-far': { generate: { kind: 'hills', color: 0x29366f, height: 220 } },
+  'bg-hills-near': { generate: { kind: 'hills', color: 0x3b5dc9, height: 150 } },
+  'bg-room-back': { generate: { kind: 'solid', color: 0x241a2b } },
+  'bg-room-wall': { generate: { kind: 'wall', base: 0x342640, line: 0x483452 } },
+};
+
+/** One background layer. `tile: false` = a single fixed full-screen image (best
+ *  with parallax 0). `tile: true` (default) = a repeating pattern that scrolls
+ *  at `parallax` (0 = fixed, 1 = moves with the world). `anchor` places tiled
+ *  bands: 'fill' covers the screen (rooms), 'bottom'/'top' are strips (hills). */
+export interface BackgroundLayer {
+  key: string;
+  parallax: number;
+  tile?: boolean;
+  anchor?: 'bottom' | 'top' | 'fill';
+  height?: number;
+  tint?: number;
+}
+
+export interface BackgroundTheme {
+  /** Solid colour drawn behind all layers. */
+  baseColor?: number;
+  layers: BackgroundLayer[];
+}
+
+export const DEFAULT_BACKGROUND = 'outdoor';
+
+export const BACKGROUNDS: Record<string, BackgroundTheme> = {
+  // Outdoor: gradient sky + two parallax hill bands (the original look).
+  outdoor: {
+    baseColor: 0x1a1c2c,
+    layers: [
+      { key: 'bg-sky', parallax: 0, tile: false, anchor: 'fill' },
+      { key: 'bg-hills-far', parallax: 0.2, anchor: 'bottom', height: 220 },
+      { key: 'bg-hills-near', parallax: 0.45, anchor: 'bottom', height: 150 },
+    ],
+  },
+  // Interior room: a fixed dark backing plus a wall pattern that scrolls with
+  // the camera (slight parallax) so it reads as a room you move through.
+  room: {
+    baseColor: 0x241a2b,
+    layers: [
+      { key: 'bg-room-back', parallax: 0, tile: false, anchor: 'fill' },
+      { key: 'bg-room-wall', parallax: 0.65, tile: true, anchor: 'fill' },
+    ],
+  },
+};

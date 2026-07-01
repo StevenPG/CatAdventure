@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/GameConfig';
-import { BACKGROUND, CAT_ANIMS, ENEMY_ANIMS, SFX, SHEETS } from '../config/assets';
+import { BG_TEXTURES, CAT_ANIMS, ENEMY_ANIMS, SFX, SHEETS } from '../config/assets';
 import { PlaceholderFactory } from '../systems/PlaceholderFactory';
 import { CATS } from '../data/cats';
 
@@ -28,6 +28,12 @@ export class PreloadScene extends Phaser.Scene {
     for (const [key, sfx] of Object.entries(SFX)) {
       const src = sfx.src ?? PlaceholderFactory.makeTone(sfx.tone);
       this.load.audio(key, src);
+    }
+
+    // Real background images (if any entry has a `src`). Generated ones are
+    // built in create() where the Graphics API is available.
+    for (const [key, bg] of Object.entries(BG_TEXTURES)) {
+      if (bg.src) this.load.image(key, bg.src);
     }
   }
 
@@ -104,26 +110,48 @@ export class PreloadScene extends Phaser.Scene {
     g.destroy();
   }
 
-  /** Sky gradient + tileable hill silhouettes for parallax. */
+  /** Generate placeholder textures for any background entry without a real src. */
   private makeBackgroundTextures(): void {
-    const sky = this.add.graphics();
-    sky.fillGradientStyle(BACKGROUND.skyTop, BACKGROUND.skyTop, BACKGROUND.skyBottom, BACKGROUND.skyBottom, 1);
-    sky.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-    sky.generateTexture('bg-sky', GAME_WIDTH, GAME_HEIGHT);
-    sky.destroy();
-
-    for (const layer of BACKGROUND.layers) {
-      const tileW = 512;
+    for (const [key, bg] of Object.entries(BG_TEXTURES)) {
+      if (bg.src) continue; // real image loaded in preload()
       const g = this.add.graphics();
-      g.fillStyle(layer.color, 1);
-      // a few overlapping hills, seamless-ish across the tile width
-      const baseY = layer.height;
-      g.fillRect(0, baseY - 30, tileW, 60);
-      for (let x = -64; x <= tileW + 64; x += 160) {
-        g.fillCircle(x, baseY - 30, 90);
-        g.fillCircle(x + 80, baseY - 30, 60);
+      const gen = bg.generate;
+      switch (gen.kind) {
+        case 'sky':
+          g.fillGradientStyle(gen.top, gen.top, gen.bottom, gen.bottom, 1);
+          g.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+          g.generateTexture(key, GAME_WIDTH, GAME_HEIGHT);
+          break;
+        case 'hills': {
+          const tileW = 512;
+          const baseY = gen.height;
+          g.fillStyle(gen.color, 1);
+          g.fillRect(0, baseY - 30, tileW, 60);
+          for (let x = -64; x <= tileW + 64; x += 160) {
+            g.fillCircle(x, baseY - 30, 90);
+            g.fillCircle(x + 80, baseY - 30, 60);
+          }
+          g.generateTexture(key, tileW, gen.height);
+          break;
+        }
+        case 'solid':
+          g.fillStyle(gen.color, 1).fillRect(0, 0, 64, 64);
+          g.generateTexture(key, 64, 64);
+          break;
+        case 'wall': {
+          // A tileable 128x128 panel: base fill with wainscot lines + a seam,
+          // so a scrolling interior reads as a real wall.
+          const s = 128;
+          g.fillStyle(gen.base, 1).fillRect(0, 0, s, s);
+          g.fillStyle(gen.line, 1);
+          g.fillRect(0, 0, s, 3); // top rail
+          g.fillRect(0, s - 3, s, 3); // bottom rail
+          g.fillRect(0, 0, 3, s); // left seam (tiles into the next panel)
+          g.fillRect(s / 2 - 1, 12, 2, s - 24); // vertical panel divider
+          g.generateTexture(key, s, s);
+          break;
+        }
       }
-      g.generateTexture(layer.key, tileW, layer.height);
       g.destroy();
     }
   }

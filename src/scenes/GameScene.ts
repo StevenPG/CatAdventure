@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, TUNING } from '../config/GameConfig';
-import { BACKGROUND } from '../config/assets';
+import { BACKGROUNDS, DEFAULT_BACKGROUND } from '../config/assets';
 import { LEVELS } from '../data/levels';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
@@ -38,7 +38,7 @@ export class GameScene extends Phaser.Scene implements GameWorld {
   private projectiles!: Phaser.Physics.Arcade.Group;
   private exit!: Phaser.Physics.Arcade.Image;
   private audio!: AudioManager;
-  private bgLayers: { sprite: Phaser.GameObjects.TileSprite; parallax: number }[] = [];
+  private bgLayers: { sprite: Phaser.GameObjects.TileSprite; parallax: number; fill: boolean }[] = [];
 
   private collected = 0;
   private total = 0;
@@ -112,28 +112,47 @@ export class GameScene extends Phaser.Scene implements GameWorld {
 
   // --- Build helpers ---
 
-  /** Sky + parallax hill layers. Layers scroll fractionally with the camera. */
+  /** Build the level's background theme (outdoor parallax, scrolling room, or a
+   *  custom theme). Tiled layers scroll fractionally with the camera; a
+   *  `tile: false` layer is a single fixed full-screen image. */
   private buildBackground(): void {
-    this.add
-      .image(0, 0, 'bg-sky')
-      .setOrigin(0, 0)
-      .setScrollFactor(0)
-      .setDepth(-100)
-      .setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
+    const theme = BACKGROUNDS[this.level.background ?? DEFAULT_BACKGROUND] ?? BACKGROUNDS[DEFAULT_BACKGROUND];
+    if (theme.baseColor !== undefined) this.cameras.main.setBackgroundColor(theme.baseColor);
 
-    for (const layer of BACKGROUND.layers) {
-      const sprite = this.add
-        .tileSprite(0, GAME_HEIGHT, GAME_WIDTH, layer.height, layer.key)
-        .setOrigin(0, 1)
-        .setScrollFactor(0)
-        .setDepth(-90);
-      this.bgLayers.push({ sprite, parallax: layer.parallax });
-    }
+    theme.layers.forEach((layer, i) => {
+      const depth = -100 + i;
+      const tile = layer.tile ?? true;
+      if (!tile) {
+        const img = this.add
+          .image(0, 0, layer.key)
+          .setOrigin(0, 0)
+          .setScrollFactor(layer.parallax)
+          .setDepth(depth)
+          .setDisplaySize(GAME_WIDTH, GAME_HEIGHT);
+        if (layer.tint !== undefined) img.setTint(layer.tint);
+        return;
+      }
+      const anchor = layer.anchor ?? 'bottom';
+      let sprite: Phaser.GameObjects.TileSprite;
+      if (anchor === 'fill') {
+        sprite = this.add.tileSprite(0, 0, GAME_WIDTH, GAME_HEIGHT, layer.key).setOrigin(0, 0);
+      } else if (anchor === 'top') {
+        sprite = this.add.tileSprite(0, 0, GAME_WIDTH, layer.height ?? 200, layer.key).setOrigin(0, 0);
+      } else {
+        sprite = this.add.tileSprite(0, GAME_HEIGHT, GAME_WIDTH, layer.height ?? 200, layer.key).setOrigin(0, 1);
+      }
+      sprite.setScrollFactor(0).setDepth(depth);
+      if (layer.tint !== undefined) sprite.setTint(layer.tint);
+      this.bgLayers.push({ sprite, parallax: layer.parallax, fill: anchor === 'fill' });
+    });
   }
 
   private updateBackground(): void {
-    const scrollX = this.cameras.main.scrollX;
-    for (const layer of this.bgLayers) layer.sprite.tilePositionX = scrollX * layer.parallax;
+    const cam = this.cameras.main;
+    for (const layer of this.bgLayers) {
+      layer.sprite.tilePositionX = cam.scrollX * layer.parallax;
+      if (layer.fill) layer.sprite.tilePositionY = cam.scrollY * layer.parallax;
+    }
   }
 
   private buildPlatforms(): void {

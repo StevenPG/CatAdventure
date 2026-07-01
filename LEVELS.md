@@ -13,10 +13,11 @@ in the level select automatically.
 {
   id: 'backyard',          // unique id; used for save data
   name: 'The Backyard',    // shown on the level-select card
-  width: 2600,             // world size in pixels
+  width: 4200,             // world size in pixels — make levels nice and long
   height: 540,             // keep at 540 (the camera viewport height)
+  background: 'outdoor',   // theme id (see below); 'outdoor' if omitted
   spawn: { x: 80, y: 420 },  // where the cat starts
-  exit:  { x: 2520, y: 440 }, // the green door that completes the level
+  exit:  { x: 4120, y: 440 }, // the green door that completes the level
   platforms: [
     { x: 0, y: 500, width: 900, height: 40 },              // solid ground
     { x: 360, y: 400, width: 140, height: 24 },            // floating platform
@@ -38,7 +39,21 @@ in the level select automatically.
   `width`/`height`.
 - `spawn`, `exit`, `enemies`, and `collectibles` are **center** points.
 - The camera follows the cat and is clamped to `0..width` / `0..height`. Make
-  levels wide; keep `height` at 540 for now.
+  levels **wide and long** — the shipped levels run ~2800–4800px; go as far as
+  you like. Keep `height` at 540 for now.
+
+### Backgrounds
+
+`background` picks a theme from `BACKGROUNDS` in
+[`src/config/assets.ts`](src/config/assets.ts):
+
+- `'outdoor'` (default) — gradient sky + parallax hills.
+- `'room'` — a scrolling interior: fixed dark backing plus a wall pattern that
+  moves at slight parallax, so it reads as a room you travel through.
+
+Add your own theme (a cave, a hallway, a painted backdrop) by adding an entry to
+`BACKGROUNDS`, then set `background: '<id>'`. Real background art drops in via
+`BG_TEXTURES` — see [ANIMATION.md → Backgrounds](ANIMATION.md#backgrounds).
 
 ### Pits are real
 
@@ -68,6 +83,7 @@ level's `id` and its save progress resets — ids are the key.)
 | `enemies[]`    | `{ x, y, patrol? }`. `patrol` is how far (px) it walks each way from `x` (default 80). |
 | `collectibles[]` | `{ x, y }`. A bobbing treat; counts toward the level's total. |
 | `spawn` / `exit` | Start point and the completion door. |
+| `background` | Theme id (`'outdoor'` default, `'room'`, or your own). |
 | `movingPlatforms[]` | `{ x, y, width, height, toX, toY, speed? }`. Ping-pongs between its start (`x`,`y`) and (`toX`,`toY`); the cat is carried while riding. Horizontal, vertical, or diagonal. |
 | `hazards[]` | `{ x, y, width, height, damage? }`. A spike zone — contact costs health and knocks you back. |
 | `flyingEnemies[]` | `{ x, y, rangeX?, rangeY?, speed? }`. Gravity-free; drifts on a sine path. Stomp/swipe/shoot/slam to defeat, like any enemy. |

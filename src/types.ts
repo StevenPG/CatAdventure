@@ -116,6 +116,9 @@ export interface LevelDefinition {
   height: number;
   spawn: { x: number; y: number };
   exit: { x: number; y: number };
+  /** Background theme id (see config/assets.ts BACKGROUNDS). Defaults to
+   *  'outdoor'. Use 'room' for a scrolling interior, or add your own theme. */
+  background?: string;
   platforms: PlatformDef[];
   enemies: { x: number; y: number; patrol?: number }[];
   collectibles: { x: number; y: number }[];

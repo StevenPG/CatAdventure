@@ -113,47 +113,62 @@ To add one: add an id to `QuirkId`, add its tuning to `TUNING.quirks` in
 
 ---
 
-## Replace the background
+## Backgrounds
 
-The background is a gradient sky plus parallax layers, all configured in
-[`src/config/assets.ts`](src/config/assets.ts) under `BACKGROUND`:
+Backgrounds are **themes** a level picks with `background: '<id>'` (see
+[LEVELS.md](LEVELS.md)). Everything lives in
+[`src/config/assets.ts`](src/config/assets.ts) in two pieces:
+
+**`BG_TEXTURES`** — every background image, each with a real-file `src` or a
+placeholder `generate` recipe (`sky`, `hills`, `wall`, `solid`):
 
 ```ts
-export const BACKGROUND = {
-  skyTop: 0x1a1c2c,
-  skyBottom: 0x3b3a6b,
-  layers: [
-    { key: 'bg-hills-far',  color: 0x29366f, height: 220, parallax: 0.2 },
-    { key: 'bg-hills-near', color: 0x3b5dc9, height: 150, parallax: 0.45 },
-  ],
-} as const;
+export const BG_TEXTURES = {
+  'bg-sky':        { generate: { kind: 'sky', top: 0x1a1c2c, bottom: 0x3b3a6b } },
+  'bg-hills-far':  { generate: { kind: 'hills', color: 0x29366f, height: 220 } },
+  'bg-room-wall':  { generate: { kind: 'wall', base: 0x342640, line: 0x483452 } },
+  // ...
+};
 ```
 
-- **Recolor / retune:** edit `skyTop`/`skyBottom` and each layer's `color`,
-  `height`, and `parallax` (0 = fixed, 1 = scrolls with the world).
-- **Add or remove a layer:** add/remove an entry in `layers` — they're rendered
-  automatically. Lower `parallax` = further away.
+**`BACKGROUNDS`** — named themes that compose those textures into layers:
 
-Textures are generated in
-[`PreloadScene.makeBackgroundTextures()`](src/scenes/PreloadScene.ts) and drawn
-as scrolling `TileSprite`s in
+```ts
+export const BACKGROUNDS = {
+  outdoor: {
+    baseColor: 0x1a1c2c,
+    layers: [
+      { key: 'bg-sky',        parallax: 0,    tile: false, anchor: 'fill' },
+      { key: 'bg-hills-far',  parallax: 0.2,  anchor: 'bottom', height: 220 },
+      { key: 'bg-hills-near', parallax: 0.45, anchor: 'bottom', height: 150 },
+    ],
+  },
+  room: { /* fixed dark backing + a wall pattern that scrolls at 0.65 */ },
+};
+```
+
+Each **layer**:
+- `parallax` — `0` = fixed, `1` = scrolls with the world. Lower = further away.
+- `tile` — `true` (default) repeats the texture and scrolls; `false` is a single
+  fixed full-screen image (use with `parallax: 0` for a painted backdrop).
+- `anchor` — `'fill'` covers the whole screen (great for interior rooms),
+  `'bottom'`/`'top'` are strips (hills, ceilings) with a `height`.
+- optional `tint`.
+
+### Recolor / retune / add a theme
+Edit the generator colors in `BG_TEXTURES`, or the layer list in `BACKGROUNDS`.
+To make a new theme (e.g. `'cave'`), add an entry to `BACKGROUNDS` and point a
+level's `background` at it.
+
+### Interior rooms that scroll
+Use a theme like `room`: a `tile: false` fixed backing plus a `tile: true`,
+`anchor: 'fill'` wall pattern at `parallax` ~0.6, so the room reads as a space
+you move through. Rendered by
 [`GameScene.buildBackground()` / `updateBackground()`](src/scenes/GameScene.ts).
 
-### Use real background images
-
-1. Drop files in `public/assets/background/` (e.g. `sky.png`, `hills-far.png`).
-2. In `PreloadScene.preload()`, load them under the layer keys and **remove the
-   matching generator** in `makeBackgroundTextures()`:
-
-   ```ts
-   this.load.image('bg-sky', 'assets/background/sky.png');
-   this.load.image('bg-hills-far', 'assets/background/hills-far.png');
-   this.load.image('bg-hills-near', 'assets/background/hills-near.png');
-   ```
-
-3. Keep the same keys and the `BACKGROUND.layers` array — `GameScene` already
-   tiles and parallaxes whatever texture lives under each key. Adjust each
-   layer's `height`/`parallax` to fit your art.
-
-For a single full-screen image with no parallax, load it as `bg-sky` and clear
-the `layers` array.
+### Use real background art
+Set `src` on any `BG_TEXTURES` entry (e.g. `src: 'assets/background/room.png'`)
+and drop the file in `public/assets/background/`. The layer keeps its key; no
+code changes. For a hand-painted full-screen backdrop, use `tile: false`,
+`anchor: 'fill'`, `parallax: 0`. For a seamless repeating pattern, use
+`tile: true`.
