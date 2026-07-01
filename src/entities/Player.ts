@@ -2,10 +2,13 @@ import Phaser from 'phaser';
 import type { Ability, CatDefinition, CatStats, GameWorld } from '../types';
 import { createAbility } from '../cats/abilities';
 import { TUNING } from '../config/GameConfig';
+import { DEFAULT_CAT_ID } from '../data/cats';
 import { AudioManager } from '../systems/AudioManager';
 
-/** Default placeholder spritesheet key (see config/assets.ts). */
-export const PLAYER_TEXTURE = 'cat';
+/** Per-cat spritesheet key convention: 'cat-<id>' (see config/assets.ts). */
+export const catTextureKey = (id: string): string => `cat-${id}`;
+/** Texture the sprite is created with before the first setCat swaps it in. */
+export const PLAYER_TEXTURE = catTextureKey(DEFAULT_CAT_ID);
 
 /**
  * The controllable cat. Wraps an Arcade sprite and re-equips itself whenever
@@ -71,7 +74,7 @@ export class Player {
   setCat(def: CatDefinition): void {
     this.cat = def;
     this.ability = createAbility(def.ability);
-    this.animPrefix = def.spriteSheet ?? PLAYER_TEXTURE;
+    this.animPrefix = def.spriteSheet ?? catTextureKey(def.id);
     this.sprite.setTexture(this.animPrefix);
     // Preserve the feet position across a scale change. Keeping the sprite
     // CENTER fixed would sink a bigger cat's feet into the floor; the deep
@@ -80,7 +83,10 @@ export class Player {
     this.sprite.setScale(def.scale ?? 1);
     this.resizeBody(def.scale ?? 1);
     this.sprite.y = feetY - this.sprite.displayHeight / 2;
-    this.sprite.setTint(def.bodyColor);
+    // Per-cat art carries its own color, so no runtime tint. Clear any leftover
+    // hit-flash from the previous cat.
+    this.sprite.clearTint();
+    this.sprite.setAlpha(1);
     this.sprite.setAngle(0); // reset any quirk rotation from the previous cat
     // Switch the health buffer to the new cat's max. Clamp wounds so a switch
     // never heals you (wounds persist) nor instantly kills you (leaves >= 1).
@@ -210,9 +216,9 @@ export class Player {
     }
     this.ability?.update?.({ player: this, world: this.world, facing: this.facing }, deltaMs);
 
-    // Restore normal tint once the i-frame flash ends.
-    if (this.sprite.tintTopLeft !== this.cat.bodyColor && now > this.invulnUntil) {
-      this.sprite.setTint(this.cat.bodyColor);
+    // Clear the i-frame flash once it ends (per-cat art has no runtime tint).
+    if (this.sprite.isTinted && now > this.invulnUntil) {
+      this.sprite.clearTint();
       this.sprite.setAlpha(1);
     }
 
@@ -253,8 +259,8 @@ export class Player {
     if (now < this.invulnUntil) return false;
     this.wounds += 1;
     this.invulnUntil = now + TUNING.combat.playerInvulnMs;
-    this.sprite.setTint(0xffffff);
-    this.sprite.setAlpha(0.6);
+    this.sprite.setTintFill(0xffffff); // solid white blink over the sprite art
+    this.sprite.setAlpha(0.85);
     this.audio.play(this.cat.sounds.hurt ?? 'sfx-hurt');
     return true;
   }
@@ -266,7 +272,7 @@ export class Player {
   /** Refill to full and restore normal appearance (used on soft respawn). */
   resetHealth(): void {
     this.wounds = 0;
-    this.sprite.setTint(this.cat.bodyColor);
+    this.sprite.clearTint();
     this.sprite.setAlpha(1);
   }
 

@@ -1,77 +1,90 @@
-# Assets
+# Assets — how to use your own art & sound
 
-Drop real art and audio here, then point the manifest at it in
-`src/config/assets.ts`. Files in `public/` are served at the web root, so a file
-at `public/assets/cats/pounce.png` is referenced as `assets/cats/pounce.png`.
-
-Until a file exists, the game uses a generated placeholder — nothing breaks if a
-folder is empty.
+**Every sprite and sound in the game is a real file in this folder.** They're
+placeholders right now. To use your own, **overwrite the file** — keep the same
+name and size, and everything just works. No code to touch.
 
 ```
 public/assets/
-  cats/         # per-cat spritesheets
-  sfx/          # sound effects
-  background/   # optional background images
+  cats/       one spritesheet per cat  (cats/<id>.png)
+  enemies/    the enemy spritesheet     (enemies/enemy.png)
+  sfx/        one sound per effect      (sfx/<key>.wav)
+  background/ optional room / backdrop art
 ```
 
-## Cat spritesheets (`cats/`)
+---
 
-One horizontal strip per cat. The default frame size is **48×48**, **10 frames**,
-left to right, in this exact order:
+## Cats  → `cats/<id>.png`
 
-| Frame | Pose            | Used by animation |
-| ----- | --------------- | ----------------- |
-| 0     | idle            | `idle` (0,1,0,2) |
-| 1     | idle (breathe)  | `idle` |
-| 2     | idle (blink)    | `idle` |
-| 3     | run 1           | `run` (3,4,5,6) |
-| 4     | run 2           | `run` |
-| 5     | run 3           | `run` |
-| 6     | run 4           | `run` |
-| 7     | jump            | `jump` |
-| 8     | fall            | `fall` |
-| 9     | attack          | `attack` |
+One file per cat, named by its id:
 
-Run `npm run dev` and open **`/spritesheet-preview.html`** to see this layout
-rendered and animated live — it's the visual spec for the real sheet.
+`eli.png` · `umbra.png` · `bucket.png` · `bitty.png` · `wilson.png` ·
+`torture-pixie.png` · `milk.png` · `bones.png` · `wobble.png` · `pancake.png` ·
+`triscuit.png` · `bonky.png` · `belby.png`
 
-To use one, add an entry to `SHEETS` in `src/config/assets.ts` and set the cat's
-`spriteSheet` in `src/data/cats.ts`:
+**To give a cat real art: overwrite its file.** e.g. drop your art over
+`cats/eli.png` and Eli uses it — that's the whole process.
 
-```ts
-// assets.ts
-SHEETS = {
-  'cat-pounce': { src: 'assets/cats/pounce.png', frameWidth: 48, frameHeight: 48, frameCount: 6, generator: 'cat' },
-  // ...
-}
+Format: a **horizontal spritesheet, 480×48**, i.e. **10 frames of 48×48**, left
+to right, in this order:
 
-// cats.ts
-{ id: 'pounce', /* ... */ spriteSheet: 'cat-pounce' }
-```
+| Frame | Pose | Used by |
+| - | - | - |
+| 0 | idle | `idle` |
+| 1 | idle (breathe) | `idle` |
+| 2 | idle (blink) | `idle` |
+| 3–6 | run cycle | `run` |
+| 7 | jump | `jump` |
+| 8 | fall | `fall` |
+| 9 | attack | `attack` |
 
-Different frame size or count? Update `frameWidth`/`frameHeight`/`frameCount`
-on the entry, and the frame indices in `CAT_ANIMS` if your layout differs.
-(`generator` is only used for the placeholder when `src` is missing — leave it.)
+Run `npm run dev` and open **`/spritesheet-preview.html`** to see the exact
+layout rendered and animated. Draw your cat in **full colour** — the game does
+not tint real cat art. Different size/frame count? Update that cat's entry in
+`SHEETS` (`src/config/assets.ts`).
 
-The enemy sheet works the same way (`enemy` key, default **36×36**, **6 frames**:
-`0-1` idle/blink, `2-5` walk cycle, mapped by `ENEMY_ANIMS`).
+The ids are set in `src/data/cats.ts`. To add a brand-new cat, add it there and
+drop a `cats/<newId>.png` — it wires up automatically.
 
-## Sound effects (`sfx/`)
+---
 
-`.wav`, `.mp3`, or `.ogg`. Set `src` on the matching key in `SFX`
-(`src/config/assets.ts`):
+## Enemy  → `enemies/enemy.png`
 
-```ts
-'sfx-jump': { src: 'assets/sfx/jump.wav', tone: { /* ignored when src is set */ } },
-```
+A **216×36** sheet = **6 frames of 36×36**: `0` idle, `1` idle (blink),
+`2–5` walk cycle.
 
-Keys the game plays: `sfx-jump`, `sfx-attack`, `sfx-dash`, `sfx-slam`,
-`sfx-shoot`, `sfx-glide`, `sfx-hurt`, `sfx-select`, `sfx-collect`. Each cat's
-`sounds` in `cats.ts` references these keys — point a cat at a different key to
-give it a unique sound.
+Keep this one **white / greyscale**: the game tints it (orange for walkers,
+purple for flyers), so a colourless sheet lets both variants read.
 
-## Background (`background/`)
+---
 
-Optional. Edit colors/parallax in `BACKGROUND` (`src/config/assets.ts`), or load
-real images for the layer keys (`bg-sky`, `bg-hills-far`, `bg-hills-near`) in
-`PreloadScene` and remove the matching generator.
+## Sounds  → `sfx/<key>.wav`
+
+Overwrite any of these to change a sound (`.wav`, `.mp3`, or `.ogg` all work —
+if you use a different extension, update the path in `SFX` in
+`src/config/assets.ts`):
+
+`sfx-jump` · `sfx-attack` · `sfx-dash` · `sfx-slam` · `sfx-shoot` · `sfx-glide`
+· `sfx-hurt` · `sfx-select` · `sfx-collect`
+
+Each cat chooses which sound it plays in `src/data/cats.ts` (`sounds: { … }`),
+so you can point a cat at a different key for a unique voice.
+
+---
+
+## Backgrounds  → `background/`
+
+Room and outdoor backdrops are themes (`BACKGROUNDS` in `src/config/assets.ts`).
+To use a real image (e.g. a photo of a room), set `src` on the matching
+`BG_TEXTURES` entry — for a full painted backdrop use a `tile: false`,
+`anchor: 'fill'`, `parallax: 0` layer. Full details in
+[ANIMATION.md → Backgrounds](../../ANIMATION.md#backgrounds).
+
+---
+
+## Notes
+
+- Files are served from the web root: `public/assets/cats/eli.png` loads as
+  `assets/cats/eli.png` (already wired — don't change the path).
+- Want the built-in placeholder back for something? Delete/blank the `src` on
+  its entry in `src/config/assets.ts` and the game regenerates it procedurally.

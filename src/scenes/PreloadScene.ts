@@ -47,7 +47,7 @@ export class PreloadScene extends Phaser.Scene {
 
   /** Build the standard animation set for every distinct cat spritesheet. */
   private createCatAnimations(): void {
-    const keys = new Set(CATS.map((c) => c.spriteSheet ?? 'cat'));
+    const keys = new Set(CATS.map((c) => c.spriteSheet ?? `cat-${c.id}`));
     for (const key of keys) {
       for (const [name, def] of Object.entries(CAT_ANIMS)) {
         const animKey = `${key}-${name}`;

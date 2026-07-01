@@ -1,15 +1,18 @@
 /**
  * ASSET MANIFEST — the single place that says what art and audio the game uses.
  *
- * Everything here ships with a procedurally-generated placeholder so the game
- * runs with zero binary files. To use REAL assets, drop files in `public/` and
- * set the `src` path on the matching entry — the loader uses the file instead
- * of the placeholder, and nothing else has to change.
+ * Every sprite and sound is a REAL FILE under public/assets/ (generated
+ * placeholders committed to the repo). To use your own art/audio, just overwrite
+ * the matching file — keep the name, dimensions, and (for sheets) frame layout.
+ * Nothing else has to change. See public/assets/README.md.
  *
- *   Sprites:  set `src` to a spritesheet PNG laid out as `frameCount` frames of
- *             `frameWidth`x`frameHeight`, left-to-right.
- *   Audio:    set `src` to a .wav/.mp3/.ogg path.
+ *   Cat sprites:  public/assets/cats/<id>.png   (48x48, 10 frames, left-to-right)
+ *   Enemy sprite: public/assets/enemies/enemy.png (36x36, 6 frames)
+ *   Sounds:       public/assets/sfx/<key>.wav   (.wav/.mp3/.ogg)
+ *
+ * (Clearing an entry's `src` falls back to the built-in procedural generator.)
  */
+import { CATS } from '../data/cats';
 
 /** A single animation: which frame indices, how fast, and repeat (-1 = loop). */
 export interface AnimDef {
@@ -48,8 +51,15 @@ export interface SfxAsset {
 // entry/texture key here and set `spriteSheet` on the cat in data/cats.ts.
 
 export const SHEETS: Record<string, SheetAsset> = {
-  cat: { frameWidth: 48, frameHeight: 48, frameCount: 10, generator: 'cat' },
-  enemy: { frameWidth: 36, frameHeight: 36, frameCount: 6, generator: 'enemy' },
+  // One spritesheet FILE per cat at public/assets/cats/<id>.png — overwrite one
+  // to give that cat real art. Built from the roster so ids stay in sync.
+  ...Object.fromEntries(
+    CATS.map((cat) => [
+      `cat-${cat.id}`,
+      { src: `assets/cats/${cat.id}.png`, frameWidth: 48, frameHeight: 48, frameCount: 10, generator: 'cat' as const },
+    ]),
+  ),
+  enemy: { src: 'assets/enemies/enemy.png', frameWidth: 36, frameHeight: 36, frameCount: 6, generator: 'enemy' },
 };
 
 /** Animation layout for any cat spritesheet (frame indices into the 10 frames).
@@ -82,6 +92,9 @@ export const SFX: Record<string, SfxAsset> = {
   'sfx-select': { tone: { freq: 660, sweepTo: 990, durationMs: 90, type: 'triangle', volume: 0.2 } },
   'sfx-collect': { tone: { freq: 800, sweepTo: 1200, durationMs: 120, type: 'sine', volume: 0.22 } },
 };
+// Each sound is a real file at public/assets/sfx/<key>.wav — overwrite to
+// replace. (Clear a `src` to fall back to the synthesized tone.)
+for (const key of Object.keys(SFX)) SFX[key].src ??= `assets/sfx/${key}.wav`;
 
 // --- Backgrounds -------------------------------------------------------------
 // Two pieces: BG_TEXTURES declares every background image (real file via `src`,
