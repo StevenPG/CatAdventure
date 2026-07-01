@@ -447,7 +447,7 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.player.moveIntent(dir, time);
 
     // Resolve moving-platform riding before jump input so jumping off works.
-    this.rideMovingPlatforms();
+    this.rideMovingPlatforms(delta);
 
     if (
       Phaser.Input.Keyboard.JustDown(k.up) ||
@@ -471,23 +471,22 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.emitHud();
   }
 
-  /** Moving platforms as one-way riders: move each platform, and when the cat
-   *  is on top (overlapping and not rising) snap it to the surface and carry it
-   *  by the platform's per-step delta. No collider, so the carry is exactly 1:1
-   *  and the cat doesn't slide off. */
-  private rideMovingPlatforms(): void {
+  /** Moving platforms as one-way riders: move each platform by frame delta-time,
+   *  and when the cat is on top (overlapping and not rising) snap it to the
+   *  surface and carry it by the platform's exact per-frame displacement. Delta-
+   *  driven so cat and platform stay in lockstep at any frame/physics rate. */
+  private rideMovingPlatforms(deltaMs: number): void {
     const pb = this.player.body;
     let riding = false;
     for (const mp of this.movingPlatforms) {
-      mp.update();
-      const mb = mp.body;
-      const overlapX = pb.right > mb.left + 2 && pb.left < mb.right - 2;
-      const nearTop = pb.bottom >= mb.top - 10 && pb.bottom <= mb.top + 12;
+      mp.update(deltaMs);
+      const overlapX = pb.right > mp.left + 2 && pb.left < mp.right - 2;
+      const nearTop = pb.bottom >= mp.top - 10 && pb.bottom <= mp.top + 12;
       if (!riding && overlapX && nearTop && pb.velocity.y >= -10) {
-        this.player.sprite.y += mb.top - pb.bottom; // seat feet on the surface
+        this.player.sprite.y += mp.top - pb.bottom; // seat feet on the surface
         pb.setVelocityY(0);
-        this.player.sprite.x += mb.deltaX();
-        this.player.sprite.y += mb.deltaY();
+        this.player.sprite.x += mp.dx;
+        this.player.sprite.y += mp.dy;
         riding = true;
       }
     }
