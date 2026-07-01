@@ -48,6 +48,15 @@ export class SaveManager {
     return this.data.lastCatId;
   }
 
+  get muted(): boolean {
+    return this.data.muted ?? false;
+  }
+
+  setMuted(m: boolean): void {
+    this.data.muted = m;
+    this.persist();
+  }
+
   setLastCat(id: string): void {
     this.data.lastCatId = id;
     this.persist();

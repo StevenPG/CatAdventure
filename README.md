@@ -24,20 +24,26 @@ npm run preview  # serve the production build
 | Action          | Keys                                                  |
 | --------------- | ----------------------------------------------------- |
 | Move            | `←` `→` or `A` `D`                                     |
-| Jump            | `↑` / `W` / `Space`                                   |
+| Jump            | `↑` / `W` / `Space` — tap for a short hop, hold for full height |
 | Attack          | `J`                                                   |
-| Special         | `K` (hold for glide-type abilities)                   |
+| Special         | `K` (hold for glide/hover-type abilities)             |
 | **Switch cat**  | `Tab` (forward) / `Shift+Tab` (back), or click a face |
-| Pause           | `Esc` / `P` (then `M` for level select)               |
-| Pick level      | `1`–`9` on the level select                           |
+| Pause           | `Esc` / `P` (then `R` restart, `M` level select)      |
+| Fullscreen      | `F`                                                   |
+| Pick level      | `1`–`9` (`0` = level 10) on the level select          |
+
+On touch devices, on-screen buttons appear automatically (move, jump, attack,
+special, pause). Jumps have coyote time and input buffering, so the platforming
+is forgiving by design. A mute toggle and the controls reference live in the
+bottom-left corner during play.
 
 Stomp enemies from above **or** hit them with attacks, projectiles, or a
 ground-slam. Collect treats. Reach the green exit to clear the level. Progress
 is saved to `localStorage`.
 
 There's no game-over screen: if you run out of health or fall into a pit, the
-camera gently scrolls back to the start of the level, health refills, and any
-treats you already collected stay collected.
+camera gently scrolls back to the level start — or the **last checkpoint flag
+you passed** — health refills, and treats you collected stay collected.
 
 ## Architecture
 

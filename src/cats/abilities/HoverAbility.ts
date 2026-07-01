@@ -23,4 +23,8 @@ export class HoverAbility implements Ability {
       this.fuelMs -= deltaMs;
     }
   }
+
+  gauge(): number {
+    return Math.max(0, this.fuelMs / TUNING.abilities.hover.fuelMs);
+  }
 }

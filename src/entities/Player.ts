@@ -216,6 +216,17 @@ export class Player {
     return this.world.time.now < this.dashUntil ? this.dashDamage : 0;
   }
 
+  /** 0..1 gauge for the HUD: an ability's own resource (hover fuel) when it
+   *  has one, otherwise cooldown readiness. Null = nothing worth showing. */
+  abilityGauge(now: number): number | null {
+    if (!this.ability) return null;
+    const own = this.ability.gauge?.();
+    if (own !== undefined) return own;
+    if (this.ability.cooldownMs <= 0) return null;
+    const remaining = this.abilityReadyAt - now;
+    return remaining <= 0 ? 1 : 1 - Math.min(1, remaining / this.ability.cooldownMs);
+  }
+
   beginSlam(radius: number, damage: number, shake: number): void {
     this.slamActive = true;
     this.slamRadius = radius;
@@ -277,7 +288,9 @@ export class Player {
 
   private playAnim(name: string, ignoreIfPlaying = true): void {
     const key = `${this.animPrefix}-${name}`;
-    if (this.sprite.anims) this.sprite.anims.play(key, ignoreIfPlaying);
+    // Guard on existence so one bad/missing asset can't throw inside the game
+    // loop (which would silently break everything after Player.update).
+    if (this.sprite.anims && this.world.anims.exists(key)) this.sprite.anims.play(key, ignoreIfPlaying);
   }
 
   takeDamage(now: number): boolean {

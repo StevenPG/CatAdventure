@@ -97,6 +97,9 @@ export interface Ability {
   activate(ctx: AbilityContext): boolean;
   /** Optional per-frame hook for ongoing effects (e.g. glide). */
   update?(ctx: AbilityContext, deltaMs: number): void;
+  /** Optional 0..1 resource gauge (e.g. hover fuel) shown in the HUD. When
+   *  absent, the HUD derives a gauge from the cooldown instead. */
+  gauge?(): number;
 }
 
 /** Minimal surface the gameplay scene exposes to abilities/effects, so those
@@ -184,6 +187,19 @@ export interface EnemyLike {
   update(): void;
 }
 
+/** On-screen touch input, written by UIScene's buttons and read by GameScene
+ *  each frame (shared via the game registry under 'touchState'). Held states
+ *  are booleans; presses are queued flags the reader consumes. */
+export interface TouchState {
+  left: boolean;
+  right: boolean;
+  specialHeld: boolean;
+  jumpQueued: boolean;
+  jumpReleased: boolean;
+  attackQueued: boolean;
+  specialQueued: boolean;
+}
+
 export interface SaveData {
   /** Highest level index unlocked (0-based). */
   unlockedLevel: number;
@@ -191,4 +207,6 @@ export interface SaveData {
   levelStats: Record<string, { collected: number; completed: boolean }>;
   /** Last cat the player selected (id). */
   lastCatId: string | null;
+  /** Sound muted (persisted across sessions). */
+  muted?: boolean;
 }

@@ -15,17 +15,11 @@ import { CATS } from '../data/cats';
  * breaks on a missing asset.
  */
 export class PreloadScene extends Phaser.Scene {
-  private failed = new Set<string>();
-
   constructor() {
     super('Preload');
   }
 
   preload(): void {
-    this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
-      this.failed.add(file.key);
-    });
-
     // Spritesheets (cat, enemy) — real file or generated placeholder sheet.
     for (const [key, sheet] of Object.entries(SHEETS)) {
       const src = sheet.src ?? PlaceholderFactory.makeSheet(sheet.generator, sheet.frameWidth, sheet.frameHeight, sheet.frameCount);
@@ -46,10 +40,12 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create(): void {
-    // Missing files? Generate placeholders and run a second loader pass before
+    // Anything whose file didn't yield a usable asset (404, or a dev server
+    // answering with HTML) is simply absent from the caches — detect that
+    // directly, generate placeholders, and run a second loader pass before
     // building animations (which need the textures to exist).
-    if (this.failed.size > 0) {
-      this.queueFallbacks();
+    const queued = this.queueFallbacks();
+    if (queued) {
       this.load.once(Phaser.Loader.Events.COMPLETE, () => this.finishCreate());
       this.load.start();
     } else {
@@ -57,25 +53,27 @@ export class PreloadScene extends Phaser.Scene {
     }
   }
 
-  private queueFallbacks(): void {
-    for (const key of this.failed) {
-      const sheet = SHEETS[key];
-      if (sheet) {
-        // Cats fall back to a placeholder in their own bodyColor.
-        const cat = CATS.find((c) => key === `cat-${c.id}` || key === c.spriteSheet);
-        const color = cat ? `#${cat.bodyColor.toString(16).padStart(6, '0')}` : '#ffffff';
-        const uri = PlaceholderFactory.makeSheet(sheet.generator, sheet.frameWidth, sheet.frameHeight, sheet.frameCount, color);
-        this.load.spritesheet(key, uri, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight });
-        console.warn(`[assets] "${sheet.src}" missing — using a generated placeholder for "${key}"`);
-        continue;
-      }
-      const sfx = SFX[key];
-      if (sfx) {
-        this.load.audio(key, PlaceholderFactory.makeTone(sfx.tone));
-        console.warn(`[assets] "${sfx.src}" missing — using a synthesized tone for "${key}"`);
-      }
-      // Missing background images regenerate in makeBackgroundTextures below.
+  /** Returns true if any fallback loads were queued. */
+  private queueFallbacks(): boolean {
+    let queued = false;
+    for (const [key, sheet] of Object.entries(SHEETS)) {
+      if (this.textures.exists(key)) continue;
+      // Cats fall back to a placeholder in their own bodyColor.
+      const cat = CATS.find((c) => key === `cat-${c.id}` || key === c.spriteSheet);
+      const color = cat ? `#${cat.bodyColor.toString(16).padStart(6, '0')}` : '#ffffff';
+      const uri = PlaceholderFactory.makeSheet(sheet.generator, sheet.frameWidth, sheet.frameHeight, sheet.frameCount, color);
+      this.load.spritesheet(key, uri, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight });
+      console.warn(`[assets] "${sheet.src}" missing — using a generated placeholder for "${key}"`);
+      queued = true;
     }
+    for (const [key, sfx] of Object.entries(SFX)) {
+      if (this.cache.audio.exists(key)) continue;
+      this.load.audio(key, PlaceholderFactory.makeTone(sfx.tone));
+      console.warn(`[assets] "${sfx.src}" missing — using a synthesized tone for "${key}"`);
+      queued = true;
+    }
+    // Missing background images regenerate in makeBackgroundTextures instead.
+    return queued;
   }
 
   private finishCreate(): void {
@@ -90,6 +88,7 @@ export class PreloadScene extends Phaser.Scene {
   private createCatAnimations(): void {
     const keys = new Set(CATS.map((c) => c.spriteSheet ?? `cat-${c.id}`));
     for (const key of keys) {
+      if (!this.textures.exists(key)) continue; // never create broken anims
       for (const [name, def] of Object.entries(CAT_ANIMS)) {
         const animKey = `${key}-${name}`;
         if (this.anims.exists(animKey)) continue;
@@ -181,7 +180,7 @@ export class PreloadScene extends Phaser.Scene {
   /** Generate placeholder textures for any background entry without a real src. */
   private makeBackgroundTextures(): void {
     for (const [key, bg] of Object.entries(BG_TEXTURES)) {
-      if (bg.src && !this.failed.has(key)) continue; // real image loaded in preload()
+      if (bg.src && this.textures.exists(key)) continue; // real image loaded in preload()
       const g = this.add.graphics();
       const gen = bg.generate;
       switch (gen.kind) {

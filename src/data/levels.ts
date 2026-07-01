@@ -52,7 +52,7 @@ export const LEVELS: LevelDefinition[] = [
       { x: 1900, y: 460, patrol: 140 },
       { x: 2650, y: 460, patrol: 120 },
       { x: 3100, y: 460, patrol: 130 },
-      { x: 3600, y: 460, patrol: 150 },
+      { x: 3600, y: 460, patrol: 130 },
     ],
     collectibles: [
       { x: 430, y: 360 },
@@ -92,11 +92,11 @@ export const LEVELS: LevelDefinition[] = [
       { x: 3000, y: 260, width: 200, height: 24 },
     ],
     enemies: [
-      { x: 800, y: 330, patrol: 50 },
-      { x: 1280, y: 330, patrol: 50 },
-      { x: 1780, y: 230, patrol: 90 },
-      { x: 2300, y: 350, patrol: 50 },
-      { x: 2820, y: 230, patrol: 50 },
+      { x: 840, y: 330, patrol: 55 },
+      { x: 1320, y: 330, patrol: 55 },
+      { x: 1820, y: 230, patrol: 75 },
+      { x: 2340, y: 350, patrol: 55 },
+      { x: 2860, y: 230, patrol: 55 },
     ],
     collectibles: [
       { x: 600, y: 400 },
@@ -474,7 +474,7 @@ export const LEVELS: LevelDefinition[] = [
       { x: 630, y: 290, patrol: 45 },
       { x: 1180, y: 460, patrol: 90 },
       { x: 1490, y: 290, patrol: 45 },
-      { x: 2120, y: 460, patrol: 120 },
+      { x: 2120, y: 460, patrol: 90 },
       { x: 2510, y: 270, patrol: 45 },
       { x: 3250, y: 330, patrol: 45 },
       { x: 3720, y: 330, patrol: 45 },
@@ -542,7 +542,7 @@ export const LEVELS: LevelDefinition[] = [
     ],
     enemies: [
       { x: 380, y: 460, patrol: 100 },
-      { x: 560, y: 290, patrol: 45 },
+      { x: 560, y: 290, patrol: 35 },
       { x: 1120, y: 460, patrol: 90 },
       { x: 1340, y: 270, patrol: 45 },
       { x: 1720, y: 310, patrol: 45 },

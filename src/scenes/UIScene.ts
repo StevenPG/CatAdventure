@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/GameConfig';
 import { CatEvents } from '../systems/CatManager';
+import { SaveManager } from '../systems/SaveManager';
 import { getEffectSpec, type ScreenEffectSpec } from '../cats/effects';
-import type { CatDefinition } from '../types';
+import type { CatDefinition, TouchState } from '../types';
 import type { GameScene } from './GameScene';
 
 const VIGNETTE_KEY = 'ui-vignette';
@@ -28,6 +29,8 @@ export class UIScene extends Phaser.Scene {
   private faces: FaceIcon[] = [];
   private heartsText!: Phaser.GameObjects.Text;
   private treatsText!: Phaser.GameObjects.Text;
+  private abilityBarBg!: Phaser.GameObjects.Image;
+  private abilityBarFill!: Phaser.GameObjects.Image;
   private nameText!: Phaser.GameObjects.Text;
   private toast!: Phaser.GameObjects.Text;
   private helpPanel!: Phaser.GameObjects.Container;
@@ -49,6 +52,7 @@ export class UIScene extends Phaser.Scene {
     this.buildCatBar();
     this.buildToast();
     this.buildHelp();
+    this.buildTouchControls();
 
     // React to cat switches.
     const onChange = (cat: CatDefinition, index: number) => this.onCatChanged(cat, index);
@@ -57,7 +61,7 @@ export class UIScene extends Phaser.Scene {
     this.onCatChanged(this.game_.catManager.current, this.game_.catManager.currentIndex);
 
     // React to HUD updates.
-    const onHud = (s: { health: number; maxHealth: number; collected: number; total: number }) =>
+    const onHud = (s: { health: number; maxHealth: number; collected: number; total: number; ability: number | null }) =>
       this.updateHud(s);
     this.game_.events.on('hud', onHud);
 
@@ -85,13 +89,38 @@ export class UIScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(10)
       .setStroke('#14151f', 4);
+    // Ability gauge (hover fuel / cooldown readiness) under the treats.
+    this.abilityBarBg = this.add
+      .image(16, 74, 'ui-chip')
+      .setOrigin(0, 0.5)
+      .setDisplaySize(96, 12)
+      .setTint(0x14151f)
+      .setAlpha(0.8)
+      .setScrollFactor(0)
+      .setDepth(10);
+    this.abilityBarFill = this.add
+      .image(18, 74, 'ui-chip')
+      .setOrigin(0, 0.5)
+      .setDisplaySize(92, 8)
+      .setScrollFactor(0)
+      .setDepth(11);
   }
 
-  private updateHud(s: { health: number; maxHealth: number; collected: number; total: number }): void {
+  private updateHud(s: { health: number; maxHealth: number; collected: number; total: number; ability: number | null }): void {
     const filled = '♥'.repeat(Math.max(0, s.health));
     const empty = '♡'.repeat(Math.max(0, s.maxHealth - s.health));
     this.heartsText.setText(`${filled}${empty}`);
     this.treatsText.setText(`★ ${s.collected} / ${s.total}`);
+
+    // Ability gauge: hover fuel or cooldown readiness. Hidden when meaningless.
+    if (s.ability === null) {
+      this.abilityBarBg.setVisible(false);
+      this.abilityBarFill.setVisible(false);
+    } else {
+      this.abilityBarBg.setVisible(true);
+      this.abilityBarFill.setVisible(true).setDisplaySize(Math.max(1, 96 * s.ability), 8);
+      this.abilityBarFill.setTint(s.ability >= 1 ? 0xa7f070 : 0x73eff7);
+    }
   }
 
   // --- Cat roster (top-right): a grid of tinted cat-face icons ---
@@ -191,18 +220,43 @@ export class UIScene extends Phaser.Scene {
     this.tweens.add({ targets: this.toast, alpha: 0, delay: 1400, duration: 600 });
   }
 
-  // --- Controls help (always available, bottom-left) ---
+  // --- Bottom-left chip row: help, mute, fullscreen ---
+
+  /** A small labelled square button. */
+  private chipButton(
+    x: number,
+    y: number,
+    label: string,
+    onClick: () => void,
+  ): { chip: Phaser.GameObjects.Image; text: Phaser.GameObjects.Text } {
+    const chip = this.add
+      .image(x, y, 'ui-chip')
+      .setDisplaySize(34, 34)
+      .setTint(0x3b5dc9)
+      .setScrollFactor(0)
+      .setDepth(31)
+      .setInteractive({ useHandCursor: true });
+    const text = this.add
+      .text(x, y, label, { fontFamily: 'system-ui, sans-serif', fontSize: '18px', color: '#ffffff', fontStyle: 'bold' })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(32);
+    chip.on('pointerover', () => chip.setTint(0x4a6de0));
+    chip.on('pointerout', () => chip.setTint(0x3b5dc9));
+    chip.on('pointerdown', onClick);
+    return { chip, text };
+  }
 
   private buildHelp(): void {
     const lines = [
-      'Move       ← →  /  A D',
-      'Jump       ↑ / W / Space',
-      'Attack     J',
-      'Special    K   (hold to glide / hover)',
-      'Switch cat Tab / Shift+Tab · or click a face',
-      'Pause      Esc / P',
+      'Move        ← →  /  A D',
+      'Jump        ↑ / W / Space (tap = short hop)',
+      'Attack      J',
+      'Special     K   (hold to glide / hover)',
+      'Switch cat  Tab / Shift+Tab · or click a face',
+      'Pause       Esc / P     Fullscreen  F',
     ];
-    const panelW = 320;
+    const panelW = 340;
     const panelH = 176;
     const px = 16;
     const py = GAME_HEIGHT - 56 - panelH;
@@ -223,31 +277,99 @@ export class UIScene extends Phaser.Scene {
     });
     this.helpPanel = this.add.container(0, 0, [panel, heading, body]).setScrollFactor(0).setDepth(30).setVisible(false);
 
-    // Always-visible "?" chip that reveals the panel on hover (and toggles it
-    // pinned on click, for touch).
-    const cx = 36;
     const cy = GAME_HEIGHT - 30;
-    const chip = this.add
-      .image(cx, cy, 'ui-chip')
-      .setDisplaySize(34, 34)
-      .setTint(0x3b5dc9)
-      .setScrollFactor(0)
-      .setDepth(31)
-      .setInteractive({ useHandCursor: true });
-    this.add
-      .text(cx, cy, '?', { fontFamily: 'system-ui, sans-serif', fontSize: '20px', color: '#ffffff', fontStyle: 'bold' })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(32);
 
-    chip.on('pointerover', () => this.helpPanel.setVisible(true));
-    chip.on('pointerout', () => {
-      if (!this.helpPinned) this.helpPanel.setVisible(false);
-    });
-    chip.on('pointerdown', () => {
+    // "?" reveals the controls panel on hover; click pins it (for touch).
+    const help = this.chipButton(36, cy, '?', () => {
       this.helpPinned = !this.helpPinned;
       this.helpPanel.setVisible(this.helpPinned);
     });
+    help.chip.on('pointerover', () => this.helpPanel.setVisible(true));
+    help.chip.on('pointerout', () => {
+      if (!this.helpPinned) this.helpPanel.setVisible(false);
+    });
+
+    // Mute toggle (persisted).
+    const mute = this.chipButton(78, cy, this.sound.mute ? '🔇' : '🔊', () => {
+      const muted = !this.sound.mute;
+      this.sound.mute = muted;
+      SaveManager.get().setMuted(muted);
+      mute.text.setText(muted ? '🔇' : '🔊');
+    });
+
+    // Fullscreen toggle (also on F).
+    this.chipButton(120, cy, '⛶', () => this.toggleFullscreen());
+    this.input.keyboard?.on('keydown-F', () => this.toggleFullscreen());
+  }
+
+  private toggleFullscreen(): void {
+    if (this.scale.isFullscreen) this.scale.stopFullscreen();
+    else this.scale.startFullscreen();
+  }
+
+  // --- Touch controls (only shown on touch devices) ---
+
+  private buildTouchControls(): void {
+    if (!this.sys.game.device.input.touch) return;
+    this.input.addPointer(2); // allow move + jump + special simultaneously
+
+    const ts: TouchState = {
+      left: false,
+      right: false,
+      specialHeld: false,
+      jumpQueued: false,
+      jumpReleased: false,
+      attackQueued: false,
+      specialQueued: false,
+    };
+    this.registry.set('touchState', ts);
+
+    /** A translucent circular touch button. `onHeld` tracks held state. */
+    const button = (x: number, y: number, r: number, label: string, onDown: () => void, onUp?: () => void) => {
+      const zone = this.add
+        .circle(x, y, r, 0xffffff, 0.14)
+        .setStrokeStyle(2, 0xffffff, 0.35)
+        .setScrollFactor(0)
+        .setDepth(40)
+        .setInteractive({ useHandCursor: false });
+      this.add
+        .text(x, y, label, { fontFamily: 'system-ui, sans-serif', fontSize: `${Math.round(r * 0.9)}px`, color: '#ffffff' })
+        .setOrigin(0.5)
+        .setAlpha(0.75)
+        .setScrollFactor(0)
+        .setDepth(41);
+      zone.on('pointerdown', () => {
+        zone.setFillStyle(0xffffff, 0.32);
+        onDown();
+      });
+      const release = () => {
+        zone.setFillStyle(0xffffff, 0.14);
+        onUp?.();
+      };
+      zone.on('pointerup', release);
+      zone.on('pointerout', release);
+      return zone;
+    };
+
+    // Movement (bottom-left, above the chip row).
+    button(64, GAME_HEIGHT - 104, 34, '◀', () => (ts.left = true), () => (ts.left = false));
+    button(148, GAME_HEIGHT - 104, 34, '▶', () => (ts.right = true), () => (ts.right = false));
+
+    // Actions (bottom-right): jump, attack, special.
+    button(GAME_WIDTH - 60, GAME_HEIGHT - 104, 36, '⤒', () => (ts.jumpQueued = true), () => (ts.jumpReleased = true));
+    button(GAME_WIDTH - 148, GAME_HEIGHT - 84, 30, '✦', () => (ts.attackQueued = true));
+    button(
+      GAME_WIDTH - 226, GAME_HEIGHT - 64, 28, '★',
+      () => {
+        ts.specialQueued = true;
+        ts.specialHeld = true;
+      },
+      () => (ts.specialHeld = false),
+    );
+
+    // Pause (top-centre, out of the way of HUD and roster).
+    const pause = this.chipButton(GAME_WIDTH / 2, 30, '⏸', () => this.game_.requestPause());
+    pause.chip.setAlpha(0.7);
   }
 
   // --- Screen effect layer ---

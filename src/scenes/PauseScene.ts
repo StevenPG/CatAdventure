@@ -24,7 +24,7 @@ export class PauseScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 28, 'Esc / P  —  resume          M  —  level select', {
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 28, 'Esc / P  —  resume       R  —  restart level       M  —  level select', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '18px',
         color: '#c0cbdc',
@@ -35,6 +35,15 @@ export class PauseScene extends Phaser.Scene {
     kb.on('keydown-ESC', () => this.resumeGame());
     kb.on('keydown-P', () => this.resumeGame());
     kb.on('keydown-M', () => this.toMenu());
+    kb.on('keydown-R', () => this.restartLevel());
+  }
+
+  private restartLevel(): void {
+    const game = this.scene.get('Game') as import('./GameScene').GameScene;
+    const levelIndex = game.levelIdx;
+    this.scene.stop('UI');
+    this.scene.stop('Game');
+    this.scene.start('Game', { levelIndex }); // also stops this Pause scene
   }
 
   private resumeGame(): void {

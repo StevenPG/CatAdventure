@@ -11,7 +11,7 @@ import { Collectible } from '../entities/Collectible';
 import { CatManager, CatEvents } from '../systems/CatManager';
 import { SaveManager } from '../systems/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
-import type { CatDefinition, EnemyLike, GameWorld, LevelDefinition } from '../types';
+import type { CatDefinition, EnemyLike, GameWorld, LevelDefinition, TouchState } from '../types';
 
 interface GameInit {
   levelIndex: number;
@@ -305,14 +305,20 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     kb.on('keydown-TAB', (e: KeyboardEvent) => {
       this.catManager.cycle(e.shiftKey ? -1 : 1);
     });
-    kb.on('keydown-ESC', () => this.pauseGame());
-    kb.on('keydown-P', () => this.pauseGame());
+    kb.on('keydown-ESC', () => this.requestPause());
+    kb.on('keydown-P', () => this.requestPause());
   }
 
-  private pauseGame(): void {
+  /** Pause and show the overlay (keyboard Esc/P, or the touch pause button). */
+  requestPause(): void {
     if (this.finished || this.respawning) return;
     this.scene.launch('Pause');
     this.scene.pause();
+  }
+
+  /** Which level this scene is running (used by PauseScene's restart). */
+  get levelIdx(): number {
+    return this.levelIndex;
   }
 
   // --- GameWorld implementation (used by abilities) ---
@@ -482,6 +488,7 @@ export class GameScene extends Phaser.Scene implements GameWorld {
       maxHealth: this.player.maxHealth,
       collected: this.collected,
       total: this.total,
+      ability: this.player.abilityGauge(this.time.now),
     });
   }
 
@@ -491,10 +498,13 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     this.updateBackground();
     if (this.finished || this.respawning) return;
     const k = this.keys;
+    // On-screen buttons (only present on touch devices). Queued presses are
+    // consumed here; held states are read directly.
+    const ts = this.registry.get('touchState') as TouchState | undefined;
 
     let dir: -1 | 0 | 1 = 0;
-    if (k.left.isDown || k.a.isDown) dir = -1;
-    else if (k.right.isDown || k.d.isDown) dir = 1;
+    if (k.left.isDown || k.a.isDown || ts?.left) dir = -1;
+    else if (k.right.isDown || k.d.isDown || ts?.right) dir = 1;
     this.player.moveIntent(dir, time);
 
     // Resolve moving-platform riding before jump input so jumping off works.
@@ -503,21 +513,31 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     if (
       Phaser.Input.Keyboard.JustDown(k.up) ||
       Phaser.Input.Keyboard.JustDown(k.w) ||
-      Phaser.Input.Keyboard.JustDown(k.space)
+      Phaser.Input.Keyboard.JustDown(k.space) ||
+      ts?.jumpQueued
     ) {
+      if (ts) ts.jumpQueued = false;
       this.player.requestJump(time);
     }
     // Variable jump height: releasing jump while rising cuts the arc.
     if (
       Phaser.Input.Keyboard.JustUp(k.up) ||
       Phaser.Input.Keyboard.JustUp(k.w) ||
-      Phaser.Input.Keyboard.JustUp(k.space)
+      Phaser.Input.Keyboard.JustUp(k.space) ||
+      ts?.jumpReleased
     ) {
+      if (ts) ts.jumpReleased = false;
       this.player.cutJump();
     }
-    if (Phaser.Input.Keyboard.JustDown(k.attack)) this.player.attack(time);
-    this.player.setSpecialHeld(k.special.isDown);
-    if (Phaser.Input.Keyboard.JustDown(k.special)) this.player.useAbility(time);
+    if (Phaser.Input.Keyboard.JustDown(k.attack) || ts?.attackQueued) {
+      if (ts) ts.attackQueued = false;
+      this.player.attack(time);
+    }
+    this.player.setSpecialHeld(k.special.isDown || !!ts?.specialHeld);
+    if (Phaser.Input.Keyboard.JustDown(k.special) || ts?.specialQueued) {
+      if (ts) ts.specialQueued = false;
+      this.player.useAbility(time);
+    }
 
     this.player.update(time, delta);
     this.updateCheckpoints();
