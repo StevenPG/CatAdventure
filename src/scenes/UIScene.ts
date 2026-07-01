@@ -7,24 +7,29 @@ import type { GameScene } from './GameScene';
 
 const VIGNETTE_KEY = 'ui-vignette';
 
+const CHIP_BG = 0x2b3040; // resting cat-bar slot
+const CHIP_ACTIVE = 0xffcd75; // selected slot glow (gold)
+const FACE = 30; // cat-face slot size (px)
+
 interface FaceIcon {
-  circle: Phaser.GameObjects.Arc;
+  chip: Phaser.GameObjects.Image;
+  face: Phaser.GameObjects.Image;
   cat: CatDefinition;
 }
 
 /**
- * Overlay scene that runs in parallel with GameScene. Renders the HUD, the
- * cat-switch bar (all 13 faces, active one enlarged + ringed), and the
- * per-cat screen effect (vignette / tint). Reads state from GameScene via
- * events so it stays decoupled from gameplay logic.
+ * Overlay scene that runs in parallel with GameScene. Renders the HUD (top-
+ * left), the cat-switch roster of face icons (top-right panel, active one gold
+ * + enlarged), a switch toast, and the per-cat screen effect (vignette / tint).
+ * Reads state from GameScene via events so it stays decoupled from gameplay.
  */
 export class UIScene extends Phaser.Scene {
   private game_!: GameScene;
   private faces: FaceIcon[] = [];
-  private activeRing!: Phaser.GameObjects.Arc;
+  private heartsText!: Phaser.GameObjects.Text;
+  private treatsText!: Phaser.GameObjects.Text;
   private nameText!: Phaser.GameObjects.Text;
-  private abilityText!: Phaser.GameObjects.Text;
-  private hudText!: Phaser.GameObjects.Text;
+  private toast!: Phaser.GameObjects.Text;
 
   // Screen effect layer.
   private vignette!: Phaser.GameObjects.Image;
@@ -40,6 +45,7 @@ export class UIScene extends Phaser.Scene {
     this.buildScreenEffectLayer();
     this.buildHud();
     this.buildCatBar();
+    this.buildToast();
 
     // React to cat switches.
     const onChange = (cat: CatDefinition, index: number) => this.onCatChanged(cat, index);
@@ -58,89 +64,125 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
-  // --- HUD ---
+  // --- HUD (top-left): health + treats ---
 
   private buildHud(): void {
-    this.hudText = this.add
-      .text(16, 14, '', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '20px',
-        color: '#ffffff',
-      })
+    const style = {
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '22px',
+      color: '#ffffff',
+    } as const;
+    this.heartsText = this.add
+      .text(16, 14, '', { ...style, color: '#ff7085' })
       .setScrollFactor(0)
-      .setDepth(10);
+      .setDepth(10)
+      .setStroke('#14151f', 4);
+    this.treatsText = this.add
+      .text(16, 44, '', { ...style, fontSize: '18px', color: '#ffcd75' })
+      .setScrollFactor(0)
+      .setDepth(10)
+      .setStroke('#14151f', 4);
   }
 
   private updateHud(s: { health: number; maxHealth: number; collected: number; total: number }): void {
     const filled = '♥'.repeat(Math.max(0, s.health));
     const empty = '♡'.repeat(Math.max(0, s.maxHealth - s.health));
-    this.hudText.setText(`${filled}${empty}    ★ ${s.collected}/${s.total}`);
+    this.heartsText.setText(`${filled}${empty}`);
+    this.treatsText.setText(`★ ${s.collected} / ${s.total}`);
   }
 
-  // --- Cat bar ---
+  // --- Cat roster (top-right): a grid of tinted cat-face icons ---
 
   private buildCatBar(): void {
     const roster = this.game_.catManager.roster;
-    const size = 26;
-    const gap = 8;
-    const totalW = roster.length * size + (roster.length - 1) * gap;
-    const startX = (GAME_WIDTH - totalW) / 2 + size / 2;
-    const y = GAME_HEIGHT - 34;
+    const cols = 7;
+    const rows = Math.ceil(roster.length / cols);
+    const gap = 6;
+    const cell = FACE + gap;
+    const pad = 10;
+    const gridW = cols * cell - gap;
+    const gridH = rows * cell - gap;
+    const nameH = 20;
+    const panelW = gridW + pad * 2;
+    const panelH = pad + gridH + 6 + nameH + 6;
+    const margin = 12;
+    const px = GAME_WIDTH - margin - panelW;
+    const py = margin;
 
     this.add
-      .rectangle(GAME_WIDTH / 2, y, totalW + 28, size + 22, 0x000000, 0.35)
+      .graphics()
+      .fillStyle(0x14151f, 0.55)
+      .fillRoundedRect(px, py, panelW, panelH, 10)
       .setScrollFactor(0)
       .setDepth(9);
 
-    this.activeRing = this.add
-      .circle(0, y, size * 0.85, 0xffffff, 0)
-      .setStrokeStyle(3, 0xffffff)
-      .setScrollFactor(0)
-      .setDepth(11);
-
+    const gx = px + pad + FACE / 2;
+    const gy = py + pad + FACE / 2;
     roster.forEach((cat, i) => {
-      const x = startX + i * (size + gap);
-      const circle = this.add
-        .circle(x, y, size / 2, cat.faceColor, 1)
-        .setStrokeStyle(2, 0x1a1c2c)
+      const x = gx + (i % cols) * cell;
+      const y = gy + Math.floor(i / cols) * cell;
+      const chip = this.add
+        .image(x, y, 'ui-chip')
+        .setDisplaySize(FACE, FACE)
+        .setTint(CHIP_BG)
         .setScrollFactor(0)
         .setDepth(10)
         .setInteractive({ useHandCursor: true });
-      circle.on('pointerdown', () => this.game_.catManager.selectById(cat.id));
-      this.faces.push({ circle, cat });
+      chip.on('pointerdown', () => this.game_.catManager.selectById(cat.id));
+      const face = this.add
+        .image(x, y, 'cat-face')
+        .setDisplaySize(FACE * 0.82, FACE * 0.82)
+        .setTint(cat.faceColor)
+        .setScrollFactor(0)
+        .setDepth(11);
+      this.faces.push({ chip, face, cat });
     });
 
     this.nameText = this.add
-      .text(GAME_WIDTH / 2, y - 34, '', {
+      .text(px + panelW / 2, py + pad + gridH + 6, '', {
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '16px',
-        color: '#ffffff',
+        fontSize: '15px',
+        color: '#ffcd75',
         fontStyle: 'bold',
       })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(11);
-
-    this.abilityText = this.add
-      .text(GAME_WIDTH / 2, y - 16, '', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '12px',
-        color: '#c0cbdc',
-      })
-      .setOrigin(0.5)
+      .setOrigin(0.5, 0)
       .setScrollFactor(0)
       .setDepth(11);
   }
 
+  private buildToast(): void {
+    this.toast = this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT * 0.8, '', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '18px',
+        color: '#ffffff',
+        align: 'center',
+        wordWrap: { width: GAME_WIDTH * 0.7 },
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(20)
+      .setStroke('#14151f', 5)
+      .setAlpha(0);
+  }
+
   private onCatChanged(cat: CatDefinition, index: number): void {
-    const face = this.faces[index];
-    if (face) {
-      this.activeRing.setPosition(face.circle.x, face.circle.y);
-      this.faces.forEach((f, i) => f.circle.setScale(i === index ? 1.35 : 1));
-    }
+    this.faces.forEach((f, i) => {
+      const active = i === index;
+      f.chip.setTint(active ? CHIP_ACTIVE : CHIP_BG);
+      f.chip.setScale(active ? 1.12 : 1);
+      f.face.setScale(active ? 1.12 : 1);
+    });
     this.nameText.setText(cat.name);
-    this.abilityText.setText(cat.description);
+    this.showToast(cat);
     this.applyScreenEffect(getEffectSpec(cat.effect));
+  }
+
+  private showToast(cat: CatDefinition): void {
+    this.toast.setText(`${cat.name}\n${cat.description}`);
+    this.tweens.killTweensOf(this.toast);
+    this.toast.setAlpha(1);
+    this.tweens.add({ targets: this.toast, alpha: 0, delay: 1400, duration: 600 });
   }
 
   // --- Screen effect layer ---

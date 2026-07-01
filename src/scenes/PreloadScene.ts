@@ -108,6 +108,24 @@ export class PreloadScene extends Phaser.Scene {
     g.fillTriangle(0, 16, 8, 0, 16, 16);
     g.generateTexture('spike', 16, 16);
     g.destroy();
+
+    // UI chip — a rounded square, tinted in the HUD (cat-bar slots, panels).
+    g = this.add.graphics();
+    g.fillStyle(0xffffff, 1).fillRoundedRect(0, 0, 32, 32, 9);
+    g.generateTexture('ui-chip', 32, 32);
+    g.destroy();
+
+    // Cat face for the switch bar — tinted per cat; dark eyes survive the tint.
+    g = this.add.graphics();
+    g.fillStyle(0xffffff, 1);
+    g.fillTriangle(6, 12, 11, 1, 17, 12); // left ear
+    g.fillTriangle(26, 12, 21, 1, 15, 12); // right ear
+    g.fillRoundedRect(5, 10, 22, 19, 8); // head
+    g.fillStyle(0x14151f, 1);
+    g.fillCircle(12, 20, 2.4); // eyes
+    g.fillCircle(20, 20, 2.4);
+    g.generateTexture('cat-face', 32, 32);
+    g.destroy();
   }
 
   /** Generate placeholder textures for any background entry without a real src. */
