@@ -26,8 +26,8 @@ export const CATS: CatDefinition[] = [
     id: 'eli',
     name: 'Eli',
     description: 'A three-legged gray rocket who never once acted like he was down a paw.',
-    bodyColor: 0x9badb7,
-    faceColor: 0x9badb7,
+    bodyColor: 0x9aa1ab,
+    faceColor: 0xb0b6be,
     // Very hype: high speed, low jump (down a back leg). Dash = his speed bursts.
     stats: { speed: BASE_SPEED * 1.35, jumpVelocity: BASE_JUMP * 0.8, extraJumps: 0, attackReach: BASE_REACH },
     ability: 'dash',
@@ -38,8 +38,8 @@ export const CATS: CatDefinition[] = [
     id: 'umbra',
     name: 'Umbra',
     description: 'Big and unhurried. Heavy paws that land like a dropped book.',
-    bodyColor: 0x423d5c,
-    faceColor: 0x6b6391,
+    bodyColor: 0x2e2b3d,
+    faceColor: 0x4a4570,
     scale: 1.3,
     // Bigger than regular: slow, modest jump, hits HARD (high melee damage),
     // longer reach. Ground-slam doubles down on "hits hard".
@@ -52,8 +52,8 @@ export const CATS: CatDefinition[] = [
     id: 'bucket',
     name: 'Bucket',
     description: 'A slow, solid little tank. Picks a direction and commits.',
-    bodyColor: 0xa87c50,
-    faceColor: 0xc89b6a,
+    bodyColor: 0x2b2420,
+    faceColor: 0x4a3d33,
     scale: 1.18,
     // Big but smaller than Umbra; the slowest cat; low jump. Dash-strike is his
     // "small dash attack" — a short lunge that bowls enemies over.
@@ -66,8 +66,8 @@ export const CATS: CatDefinition[] = [
     id: 'bitty',
     name: 'Bitty',
     description: 'The biggest of them all, and the gentlest. An immovable mountain.',
-    bodyColor: 0x5b6b8c,
-    faceColor: 0x8295b8,
+    bodyColor: 0x232323,
+    faceColor: 0x3d3d3d,
     scale: 1.5,
     maxHealth: 14,
     // Biggest cat, biggest tank: most health, slow, low jump, heavy hitter.
@@ -81,8 +81,8 @@ export const CATS: CatDefinition[] = [
     id: 'wilson',
     name: 'Wilson',
     description: 'A one-eyed black cat who takes the long way down, always.',
-    bodyColor: 0x2b2f42,
-    faceColor: 0x6a7290,
+    bodyColor: 0x1f2233,
+    faceColor: 0x35395c,
     // Floats down whenever airborne (feather-fall is passive, no button).
     // Soft vignette nods to the missing eye — set effect to 'none' to drop it.
     stats: { speed: BASE_SPEED, jumpVelocity: BASE_JUMP, extraJumps: 0, attackReach: BASE_REACH },
@@ -92,10 +92,10 @@ export const CATS: CatDefinition[] = [
   },
   {
     id: 'torture-pixie',
-    name: 'Torture Pixie',
-    description: 'Blind in both eyes and skittish — but she can hover like a moth.',
-    bodyColor: 0xd98cb3,
-    faceColor: 0xeaa9cc,
+    name: 'Pixie',
+    description: 'A calico blind in both eyes and skittish — but she can hover like a moth.',
+    bodyColor: 0xd98a4f,
+    faceColor: 0xf0b878,
     scale: 0.9,
     // Blind: tunnel-vision. Skittish: quick. Hover: hold special in the air.
     stats: { speed: BASE_SPEED * 1.15, jumpVelocity: BASE_JUMP, extraJumps: 0, attackReach: BASE_REACH },
@@ -106,9 +106,9 @@ export const CATS: CatDefinition[] = [
   {
     id: 'milk',
     name: 'Milk',
-    description: 'A tiny white blur — fast, springy, and gone before you blink.',
-    bodyColor: 0xf4f0e6,
-    faceColor: 0xfbf8f0,
+    description: 'A tiny tuxedo blur — fast, springy, and gone before you blink.',
+    bodyColor: 0x1c1c22,
+    faceColor: 0xf4f0e6,
     scale: 0.75,
     // Very small, very fast, high jump, fast dash.
     stats: { speed: BASE_SPEED * 1.45, jumpVelocity: BASE_JUMP * 1.3, extraJumps: 0, attackReach: BASE_REACH * 0.9 },
