@@ -12,7 +12,11 @@ export type AbilityId =
   | 'projectile'
   | 'air-glide'
   | 'feather-fall'
-  | 'hover';
+  | 'hover'
+  | 'pounce'
+  | 'zoomies'
+  | 'sonic-meow'
+  | 'whirlwind';
 
 /** Passive screen effects applied while a cat is active. Add new ids here,
  *  then register an implementation in cats/effects/index.ts. */
@@ -102,12 +106,35 @@ export interface Ability {
   gauge?(): number;
 }
 
+/** Options for GameWorld.emitBurst — a one-shot cosmetic particle burst. */
+export interface BurstOptions {
+  /** Particle tint. Defaults to white. */
+  color?: number;
+  /** How many particles to throw. */
+  count?: number;
+  /** Max launch speed (px/s); particles vary down to ~40% of this. */
+  speed?: number;
+  /** Particle lifetime (ms). */
+  lifeMs?: number;
+  /** Downward pull (px/s²) so dust/debris arcs and settles. 0 = drift. */
+  gravityY?: number;
+  /** Start scale of each particle (they shrink to nothing). */
+  scale?: number;
+  /** Emission arc in Phaser degrees (0 = right, 90 = down, 180 = left,
+   *  270 = up). Defaults to all directions. */
+  angle?: { min: number; max: number };
+}
+
 /** Minimal surface the gameplay scene exposes to abilities/effects, so those
  *  modules stay decoupled from the full GameScene implementation. */
 export interface GameWorld extends Phaser.Scene {
   spawnProjectile(x: number, y: number, direction: number, reach: number): void;
   damageEnemiesInRadius(x: number, y: number, radius: number, damage?: number): void;
   shatterBreakablesInRadius(x: number, y: number, radius: number): void;
+  /** One-shot cosmetic particle burst (dust, sparks, debris). */
+  emitBurst(x: number, y: number, opts?: BurstOptions): void;
+  /** Expanding ring shockwave visual (purely cosmetic, no gameplay effect). */
+  emitShockwave(x: number, y: number, radius: number, color?: number): void;
 }
 
 /** Per-level definition. Edit data/levels.ts to add or reshape levels. */

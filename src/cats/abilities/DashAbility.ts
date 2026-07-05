@@ -13,6 +13,7 @@ export class DashAbility implements Ability {
     // Slight upward nudge so a grounded dash skims instead of sticking.
     if (body.blocked.down) body.setVelocityY(-cfg.groundLiftY);
     ctx.player.beginDash(cfg.durationMs, cfg.speed * ctx.facing);
+    ctx.player.kickDust(ctx.facing);
     return true;
   }
 }

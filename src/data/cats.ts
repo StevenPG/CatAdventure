@@ -124,11 +124,12 @@ export const CATS: CatDefinition[] = [
     bodyColor: 0xdb6b2c,
     faceColor: 0xf0955a,
     scale: 1.22,
-    // Larger and very fast; a bit clumsy (lower jump). No tricks — just speed.
+    // Larger and very fast; a bit clumsy (lower jump). Zoomies doubles down on
+    // his one talent: a frenzied speed burst with an afterimage trail.
     stats: { speed: BASE_SPEED * 1.5, jumpVelocity: BASE_JUMP * 0.85, extraJumps: 0, attackReach: BASE_REACH },
-    ability: 'none',
+    ability: 'zoomies',
     effect: 'none',
-    sounds: { jump: 'sfx-jump', attack: 'sfx-attack', select: 'sfx-select' },
+    sounds: { jump: 'sfx-jump', attack: 'sfx-attack', ability: 'sfx-zoomies', select: 'sfx-select' },
   },
   {
     id: 'wobble',
@@ -137,11 +138,12 @@ export const CATS: CatDefinition[] = [
     bodyColor: 0xf5f2ea,
     faceColor: 0xffffff,
     // Baseline stats — the wobble is purely a visual tremor, not a handicap.
+    // Whirlwind turns all that rocking into a full spin attack on demand.
     stats: { speed: BASE_SPEED, jumpVelocity: BASE_JUMP, extraJumps: 0, attackReach: BASE_REACH },
-    ability: 'none',
+    ability: 'whirlwind',
     quirk: 'wobble',
     effect: 'none',
-    sounds: { jump: 'sfx-jump', attack: 'sfx-attack', select: 'sfx-select' },
+    sounds: { jump: 'sfx-jump', attack: 'sfx-attack', ability: 'sfx-whirl', select: 'sfx-select' },
   },
   {
     id: 'pancake',
@@ -163,10 +165,11 @@ export const CATS: CatDefinition[] = [
     bodyColor: 0x9c7a4a,
     faceColor: 0xc9a86a,
     scale: 0.85,
+    // Springy and quick: pounce is a diagonal leap that bowls enemies over.
     stats: { speed: BASE_SPEED * 1.1, jumpVelocity: BASE_JUMP * 1.1, extraJumps: 1, attackReach: BASE_REACH },
-    ability: 'none',
+    ability: 'pounce',
     effect: 'none',
-    sounds: { jump: 'sfx-jump', attack: 'sfx-attack', select: 'sfx-select' },
+    sounds: { jump: 'sfx-jump', attack: 'sfx-attack', ability: 'sfx-pounce', select: 'sfx-select' },
   },
   {
     id: 'bonky',
@@ -175,10 +178,11 @@ export const CATS: CatDefinition[] = [
     bodyColor: 0x2a1f26,
     faceColor: 0x453640,
     scale: 0.85,
+    // The bonk, weaponized: a sonic meow that damages everything nearby.
     stats: { speed: BASE_SPEED, jumpVelocity: BASE_JUMP, extraJumps: 0, attackReach: BASE_REACH * 1.7 },
-    ability: 'none',
+    ability: 'sonic-meow',
     effect: 'none',
-    sounds: { jump: 'sfx-jump', attack: 'sfx-attack', select: 'sfx-select' },
+    sounds: { jump: 'sfx-jump', attack: 'sfx-attack', ability: 'sfx-meow', select: 'sfx-select' },
   },
   {
     id: 'belby',

@@ -14,7 +14,7 @@ import { CatManager, CatEvents } from '../systems/CatManager';
 import { MusicManager } from '../systems/MusicManager';
 import { SaveManager } from '../systems/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
-import type { CatDefinition, EnemyLike, GameWorld, LevelDefinition, TouchState } from '../types';
+import type { BurstOptions, CatDefinition, EnemyLike, GameWorld, LevelDefinition, TouchState } from '../types';
 
 interface GameInit {
   levelIndex: number;
@@ -298,14 +298,18 @@ export class GameScene extends Phaser.Scene implements GameWorld {
       this.physics.add.overlap(sprite, hazard.zone, () => this.onHazard(hazard));
     }
 
-    this.physics.add.collider(this.projectiles, this.platforms, (proj) => proj.destroy());
-    this.physics.add.collider(this.projectiles, this.breakables, (proj) => proj.destroy());
+    this.physics.add.collider(this.projectiles, this.platforms, (proj) =>
+      this.popProjectile(proj as Phaser.Physics.Arcade.Image),
+    );
+    this.physics.add.collider(this.projectiles, this.breakables, (proj) =>
+      this.popProjectile(proj as Phaser.Physics.Arcade.Image),
+    );
     this.physics.add.overlap(this.projectiles, this.enemyGroup, (proj, e) => {
-      (proj as Phaser.Physics.Arcade.Image).destroy();
+      this.popProjectile(proj as Phaser.Physics.Arcade.Image);
       this.hurtEnemy(e as Phaser.Physics.Arcade.Sprite, TUNING.abilities.projectile.damage);
     });
     this.physics.add.overlap(this.projectiles, this.flyerGroup, (proj, e) => {
-      (proj as Phaser.Physics.Arcade.Image).destroy();
+      this.popProjectile(proj as Phaser.Physics.Arcade.Image);
       this.hurtEnemy(e as Phaser.Physics.Arcade.Sprite, TUNING.abilities.projectile.damage);
     });
   }
@@ -354,6 +358,8 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     const body = proj.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
     body.setVelocityX(direction * cfg.speed);
+    // Muzzle sparkle at the launch point.
+    this.emitBurst(x, y, { color: COLORS.projectile, count: 4, speed: 90, lifeMs: 180, scale: 0.7 });
     this.time.delayedCall(cfg.lifespanMs, () => proj.active && proj.destroy());
   }
 
@@ -372,9 +378,56 @@ export class GameScene extends Phaser.Scene implements GameWorld {
       if (d <= radius + img.displayWidth * 0.5) {
         const puff = this.add.circle(img.x, img.y, 18, COLORS.platformBreakable, 0.6);
         this.tweens.add({ targets: puff, alpha: 0, scale: 2, duration: 220, onComplete: () => puff.destroy() });
+        // Chunks of the platform tumbling away under gravity.
+        this.emitBurst(img.x, img.y, {
+          color: COLORS.platformBreakable,
+          count: 12,
+          speed: 200,
+          lifeMs: 450,
+          gravityY: 900,
+          scale: 1.1,
+        });
         this.breakables.killAndHide(img);
         img.destroy();
       }
+    });
+  }
+
+  emitBurst(x: number, y: number, opts: BurstOptions = {}): void {
+    const {
+      color = 0xffffff,
+      count = 8,
+      speed = 140,
+      lifeMs = 350,
+      gravityY = 0,
+      scale = 1,
+      angle = { min: 0, max: 360 },
+    } = opts;
+    const emitter = this.add.particles(x, y, 'particle', {
+      speed: { min: speed * 0.4, max: speed },
+      angle,
+      lifespan: lifeMs,
+      scale: { start: scale, end: 0 },
+      alpha: { start: 0.9, end: 0 },
+      gravityY,
+      tint: color,
+      emitting: false,
+    });
+    emitter.setDepth(5);
+    emitter.explode(count);
+    // One-shot: tear the emitter down once every particle has expired.
+    this.time.delayedCall(lifeMs + 50, () => emitter.destroy());
+  }
+
+  emitShockwave(x: number, y: number, radius: number, color = 0xffffff): void {
+    const ring = this.add.circle(x, y, radius, color, 0).setStrokeStyle(3, color, 0.85).setScale(0.15).setDepth(5);
+    this.tweens.add({
+      targets: ring,
+      scale: 1,
+      alpha: 0,
+      duration: 280,
+      ease: 'Quad.easeOut',
+      onComplete: () => ring.destroy(),
     });
   }
 
@@ -408,10 +461,17 @@ export class GameScene extends Phaser.Scene implements GameWorld {
     enemy?.hurt(damage);
   }
 
+  /** Destroy a projectile with a little impact pop where it hit. */
+  private popProjectile(proj: Phaser.Physics.Arcade.Image): void {
+    this.emitBurst(proj.x, proj.y, { color: COLORS.projectile, count: 6, speed: 130, lifeMs: 220, scale: 0.8 });
+    proj.destroy();
+  }
+
   private onCollect(sprite: Phaser.Physics.Arcade.Sprite): void {
     const item = sprite.getData('ref') as Collectible | undefined;
     if (!item) return;
     item.collect();
+    this.emitBurst(sprite.x, sprite.y, { color: COLORS.collectible, count: 10, speed: 110, lifeMs: 300, scale: 0.8 });
     this.collected += 1;
     this.audio.play('sfx-collect');
     this.emitHud();

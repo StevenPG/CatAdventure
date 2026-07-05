@@ -81,6 +81,27 @@ export const TUNING = {
     hover: { liftVelocityY: -20, fuelMs: 1300 },
     projectile: { speed: 560, lifespanMs: 1400, cooldownMs: 450, spawnOffset: 24, damage: 1 },
     airGlide: { fallSpeed: 90 },
+    // A springy diagonal leap (ground only); enemies hit mid-arc take damage.
+    pounce: { speedX: 500, speedY: 640, durationMs: 420, damage: 2, cooldownMs: 900 },
+    // A burst of frenzied speed with an afterimage trail. No damage — pure go.
+    zoomies: { speedMultiplier: 1.9, durationMs: 1600, cooldownMs: 4200 },
+    // A radial shockwave "bonk": damages everything nearby, rings + shake.
+    sonicMeow: { radius: 130, damage: 1, shake: 0.007, cooldownMs: 1100 },
+    // A brief spin that damages enemies around the cat in ticks while it lasts.
+    whirlwind: { radius: 80, damage: 1, durationMs: 500, tickMs: 170, spins: 2, cooldownMs: 1200 },
+  },
+
+  /** Cosmetic juice shared by abilities: afterimage trails behind dashes,
+   *  pounces, and zoomies. Purely visual. */
+  fx: {
+    /** Min gap between afterimage ghosts (ms). */
+    trailIntervalMs: 40,
+    /** Starting alpha of each ghost. */
+    trailAlpha: 0.35,
+    /** How long a ghost takes to fade out (ms). */
+    trailFadeMs: 240,
+    /** Tint for kicked-up dust puffs (dashes, pounces, slam landings). */
+    dustColor: 0xcfc6b8,
   },
 
   /** Soft-respawn (no game-over): message beat, then scroll back to start. */

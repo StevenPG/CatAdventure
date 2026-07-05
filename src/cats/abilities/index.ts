@@ -7,6 +7,10 @@ import { ProjectileAbility } from './ProjectileAbility';
 import { AirGlideAbility } from './AirGlideAbility';
 import { FeatherFallAbility } from './FeatherFallAbility';
 import { HoverAbility } from './HoverAbility';
+import { PounceAbility } from './PounceAbility';
+import { ZoomiesAbility } from './ZoomiesAbility';
+import { SonicMeowAbility } from './SonicMeowAbility';
+import { WhirlwindAbility } from './WhirlwindAbility';
 
 /**
  * Maps an AbilityId to a fresh Ability instance. Abilities are lightweight and
@@ -30,6 +34,14 @@ export function createAbility(id: AbilityId): Ability | null {
       return new FeatherFallAbility();
     case 'hover':
       return new HoverAbility();
+    case 'pounce':
+      return new PounceAbility();
+    case 'zoomies':
+      return new ZoomiesAbility();
+    case 'sonic-meow':
+      return new SonicMeowAbility();
+    case 'whirlwind':
+      return new WhirlwindAbility();
     case 'none':
     default:
       return null;
