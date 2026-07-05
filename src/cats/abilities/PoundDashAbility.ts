@@ -15,6 +15,7 @@ export class PoundDashAbility implements Ability {
       body.setVelocityX(cfg.dashSpeed * ctx.facing);
       body.setVelocityY(-cfg.dashGroundLiftY);
       ctx.player.beginDash(cfg.dashDurationMs, cfg.dashSpeed * ctx.facing);
+      ctx.player.kickDust(ctx.facing);
     } else {
       // Major ground-pound.
       body.setVelocityY(cfg.slamSpeed);

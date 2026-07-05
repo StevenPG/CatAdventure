@@ -35,6 +35,12 @@ export class Player {
   private slamRadius = 0;
   private slamDamage = 0;
   private slamShake = 0;
+  private boostUntil = 0;
+  private boostMultiplier = 1;
+  private spinUntil = 0;
+  private spinDurationMs = 0;
+  private spinDir: 1 | -1 = 1;
+  private nextTrailAt = 0;
   private specialHeld = false;
   /** True while riding a moving platform (counts as grounded for jump/anim). */
   private onPlatform = false;
@@ -97,6 +103,8 @@ export class Player {
     // Reset transient ability state on swap.
     this.dashUntil = 0;
     this.slamActive = false;
+    this.boostUntil = 0;
+    this.spinUntil = 0;
     this.playAnim('idle');
     this.audio.play(def.sounds.select ?? 'sfx-select');
   }
@@ -141,7 +149,8 @@ export class Player {
       return;
     }
     if (dir !== 0) {
-      this.body.setVelocityX(dir * this.stats.speed);
+      const boost = now < this.boostUntil ? this.boostMultiplier : 1;
+      this.body.setVelocityX(dir * this.stats.speed * boost);
       this.facing = dir;
       this.sprite.setFlipX(dir < 0);
     }
@@ -234,6 +243,35 @@ export class Player {
     this.slamShake = shake;
   }
 
+  /** Timed run-speed multiplier (zoomies). The afterimage trail draws while
+   *  the boost is live. */
+  beginSpeedBoost(durationMs: number, multiplier: number): void {
+    this.boostUntil = this.world.time.now + durationMs;
+    this.boostMultiplier = multiplier;
+  }
+
+  /** Spin the sprite for the given window (whirlwind). Purely visual — like
+   *  the wobble quirk it only touches sprite.angle, which Arcade never writes,
+   *  and it takes precedence over the quirk while active. */
+  beginSpin(durationMs: number, dir: number): void {
+    this.spinUntil = this.world.time.now + durationMs;
+    this.spinDurationMs = durationMs;
+    this.spinDir = dir < 0 ? -1 : 1;
+  }
+
+  /** Kick a puff of dust off the ground behind a dash/lunge in `facing`
+   *  direction. Cosmetic; safe to call airborne (the puff just floats). */
+  kickDust(facing: number): void {
+    this.world.emitBurst(this.sprite.x - facing * 10, this.body.bottom, {
+      color: TUNING.fx.dustColor,
+      count: 6,
+      speed: 130,
+      lifeMs: 280,
+      gravityY: 500,
+      angle: facing > 0 ? { min: 160, max: 240 } : { min: -60, max: 20 },
+    });
+  }
+
   // --- Per-frame ---
 
   update(now: number, deltaMs: number): void {
@@ -245,12 +283,25 @@ export class Player {
 
     // Reset double-jumps + resolve a pending slam on landing.
     if (this.body.blocked.down && this.slamActive) {
-      this.world.damageEnemiesInRadius(this.sprite.x, this.sprite.y + 16, this.slamRadius, this.slamDamage);
-      this.world.shatterBreakablesInRadius(this.sprite.x, this.sprite.y + 16, this.slamRadius);
+      const ix = this.sprite.x;
+      const iy = this.sprite.y + 16;
+      this.world.damageEnemiesInRadius(ix, iy, this.slamRadius, this.slamDamage);
+      this.world.shatterBreakablesInRadius(ix, iy, this.slamRadius);
       this.world.cameras.main.shake(120, this.slamShake);
+      // Impact juice: a shockwave ring plus dust thrown up and outward.
+      this.world.emitShockwave(ix, this.body.bottom, this.slamRadius);
+      this.world.emitBurst(ix, this.body.bottom, {
+        color: TUNING.fx.dustColor,
+        count: 14,
+        speed: 240,
+        lifeMs: 420,
+        gravityY: 800,
+        angle: { min: 190, max: 350 },
+      });
       this.slamActive = false;
     }
     this.ability?.update?.({ player: this, world: this.world, facing: this.facing }, deltaMs);
+    this.updateTrail(now);
 
     // Clear the i-frame flash once it ends (per-cat art has no runtime tint).
     if (this.sprite.isTinted && now > this.invulnUntil) {
@@ -259,13 +310,45 @@ export class Player {
     }
 
     this.updateAnimation(now);
+    this.updateSpin(now);
     this.updateQuirk(now);
+  }
+
+  /** Whirl the sprite while a beginSpin window is live; snap upright after. */
+  private updateSpin(now: number): void {
+    if (this.spinUntil === 0) return;
+    if (now >= this.spinUntil) {
+      this.spinUntil = 0;
+      this.sprite.setAngle(0);
+      return;
+    }
+    const t = 1 - (this.spinUntil - now) / this.spinDurationMs;
+    this.sprite.setAngle(t * 360 * TUNING.abilities.whirlwind.spins * this.spinDir);
+  }
+
+  /** Fading afterimage ghosts behind fast moves (dash, pounce, zoomies). */
+  private updateTrail(now: number): void {
+    if (now >= this.dashUntil && now >= this.boostUntil) return;
+    if (now < this.nextTrailAt) return;
+    const v = this.body.velocity;
+    if (Math.abs(v.x) < 60 && Math.abs(v.y) < 60) return; // only when moving
+    const cfg = TUNING.fx;
+    this.nextTrailAt = now + cfg.trailIntervalMs;
+    const ghost = this.world.add
+      .image(this.sprite.x, this.sprite.y, this.sprite.texture.key, this.sprite.frame.name)
+      .setFlipX(this.sprite.flipX)
+      .setScale(this.sprite.scaleX, this.sprite.scaleY)
+      .setAngle(this.sprite.angle)
+      .setAlpha(cfg.trailAlpha)
+      .setDepth(this.sprite.depth - 1);
+    this.world.tweens.add({ targets: ghost, alpha: 0, duration: cfg.trailFadeMs, onComplete: () => ghost.destroy() });
   }
 
   /** Purely cosmetic per-frame flair. Only ever touches sprite.angle, which
    *  Arcade Physics never writes to — safe to set every frame with no fight
    *  against the body's position/velocity sync. */
   private updateQuirk(now: number): void {
+    if (this.spinUntil > 0) return; // a whirlwind spin owns the angle
     if (this.cat.quirk !== 'wobble') return;
     const cfg = TUNING.quirks.wobble;
     const t = now / 1000;

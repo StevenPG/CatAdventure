@@ -13,6 +13,7 @@ export class DashStrikeAbility implements Ability {
     body.setVelocityX(cfg.speed * ctx.facing);
     if (body.blocked.down) body.setVelocityY(-cfg.groundLiftY);
     ctx.player.beginDash(cfg.durationMs, cfg.speed * ctx.facing, cfg.damage);
+    ctx.player.kickDust(ctx.facing);
     return true;
   }
 }

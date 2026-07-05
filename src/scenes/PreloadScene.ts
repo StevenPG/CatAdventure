@@ -153,6 +153,12 @@ export class PreloadScene extends Phaser.Scene {
     g.generateTexture('projectile', 16, 16);
     g.destroy();
 
+    // Tiny round particle for burst/dust effects (tinted per use).
+    g = this.add.graphics();
+    g.fillStyle(0xffffff, 1).fillCircle(4, 4, 4);
+    g.generateTexture('particle', 8, 8);
+    g.destroy();
+
     // A single spike tooth (base at bottom), tiled across hazard zones.
     g = this.add.graphics();
     g.fillStyle(0xffffff, 1);
