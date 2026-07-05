@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+.vite/
+.idea/CatAdventure.iml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/go.imports.xml

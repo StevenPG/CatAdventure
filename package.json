@@ -1,0 +1,21 @@
+{
+  "name": "cat-adventure",
+  "version": "0.1.0",
+  "description": "A 2D sidescroller love letter to my cats. Switch cats on the fly, each with unique abilities.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "phaser": "^3.80.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11",
+    "playwright-core": "^1.49.0"
+  }
+}

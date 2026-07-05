@@ -1,0 +1,279 @@
+import Phaser from 'phaser';
+import { GAME_HEIGHT, GAME_WIDTH } from '../config/GameConfig';
+import { BG_TEXTURES, CAT_ANIMS, ENEMY_ANIMS, MUSIC, SFX, SHEETS } from '../config/assets';
+import { PlaceholderFactory } from '../systems/PlaceholderFactory';
+import { CATS } from '../data/cats';
+
+/**
+ * Loads everything from the asset manifest. Each entry uses its real `src` file
+ * if set, otherwise a generated placeholder. Animations are built in create()
+ * once spritesheets are available.
+ *
+ * SELF-HEALING: if a file in the manifest is missing on disk (e.g. a brand-new
+ * cat with no PNG yet), the loader error is caught and a procedural placeholder
+ * is generated in its place — cats use their `bodyColor` — so the game never
+ * breaks on a missing asset.
+ */
+export class PreloadScene extends Phaser.Scene {
+  constructor() {
+    super('Preload');
+  }
+
+  preload(): void {
+    // Spritesheets (cat, enemy) — real file or generated placeholder sheet.
+    for (const [key, sheet] of Object.entries(SHEETS)) {
+      const src = sheet.src ?? PlaceholderFactory.makeSheet(sheet.generator, sheet.frameWidth, sheet.frameHeight, sheet.frameCount);
+      this.load.spritesheet(key, src, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight });
+    }
+
+    // Sound effects — real file or synthesized placeholder tone.
+    for (const [key, sfx] of Object.entries(SFX)) {
+      const src = sfx.src ?? PlaceholderFactory.makeTone(sfx.tone);
+      this.load.audio(key, src);
+    }
+
+    // Music tracks — real file or a generated melody via the fallback pass.
+    for (const [key, music] of Object.entries(MUSIC)) {
+      if (music.src) this.load.audio(key, music.src);
+    }
+
+    // Real background images (if any entry has a `src`). Generated ones are
+    // built in create() where the Graphics API is available.
+    for (const [key, bg] of Object.entries(BG_TEXTURES)) {
+      if (bg.src) this.load.image(key, bg.src);
+    }
+  }
+
+  create(): void {
+    // Anything whose file didn't yield a usable asset (404, or a dev server
+    // answering with HTML) is simply absent from the caches — detect that
+    // directly, generate placeholders, and run a second loader pass before
+    // building animations (which need the textures to exist).
+    const queued = this.queueFallbacks();
+    if (queued) {
+      this.load.once(Phaser.Loader.Events.COMPLETE, () => this.finishCreate());
+      this.load.start();
+    } else {
+      this.finishCreate();
+    }
+  }
+
+  /** Returns true if any fallback loads were queued. */
+  private queueFallbacks(): boolean {
+    let queued = false;
+    for (const [key, sheet] of Object.entries(SHEETS)) {
+      if (this.textures.exists(key)) continue;
+      // Cats fall back to a placeholder in their own bodyColor.
+      const cat = CATS.find((c) => key === `cat-${c.id}` || key === c.spriteSheet);
+      const color = cat ? `#${cat.bodyColor.toString(16).padStart(6, '0')}` : '#ffffff';
+      const uri = PlaceholderFactory.makeSheet(sheet.generator, sheet.frameWidth, sheet.frameHeight, sheet.frameCount, color);
+      this.load.spritesheet(key, uri, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight });
+      console.warn(`[assets] "${sheet.src}" missing — using a generated placeholder for "${key}"`);
+      queued = true;
+    }
+    for (const [key, sfx] of Object.entries(SFX)) {
+      if (this.cache.audio.exists(key)) continue;
+      this.load.audio(key, PlaceholderFactory.makeTone(sfx.tone));
+      console.warn(`[assets] "${sfx.src}" missing — using a synthesized tone for "${key}"`);
+      queued = true;
+    }
+    for (const [key, music] of Object.entries(MUSIC)) {
+      if (this.cache.audio.exists(key)) continue;
+      this.load.audio(key, PlaceholderFactory.makeMusic(music.gen));
+      console.warn(`[assets] "${music.src}" missing — using a generated melody for "${key}"`);
+      queued = true;
+    }
+    // Missing background images regenerate in makeBackgroundTextures instead.
+    return queued;
+  }
+
+  private finishCreate(): void {
+    this.createCatAnimations();
+    this.createEnemyAnimations();
+    this.makeSimpleTextures();
+    this.makeBackgroundTextures();
+    this.scene.start('LevelSelect');
+  }
+
+  /** Build the standard animation set for every distinct cat spritesheet. */
+  private createCatAnimations(): void {
+    const keys = new Set(CATS.map((c) => c.spriteSheet ?? `cat-${c.id}`));
+    for (const key of keys) {
+      if (!this.textures.exists(key)) continue; // never create broken anims
+      for (const [name, def] of Object.entries(CAT_ANIMS)) {
+        const animKey = `${key}-${name}`;
+        if (this.anims.exists(animKey)) continue;
+        this.anims.create({
+          key: animKey,
+          frames: this.anims.generateFrameNumbers(key, { frames: def.frames }),
+          frameRate: def.frameRate,
+          repeat: def.repeat,
+        });
+      }
+    }
+  }
+
+  private createEnemyAnimations(): void {
+    for (const [name, def] of Object.entries(ENEMY_ANIMS)) {
+      const animKey = `enemy-${name}`;
+      if (this.anims.exists(animKey)) continue;
+      this.anims.create({
+        key: animKey,
+        frames: this.anims.generateFrameNumbers('enemy', { frames: def.frames }),
+        frameRate: def.frameRate,
+        repeat: def.repeat,
+      });
+    }
+  }
+
+  /** Simple single shapes used directly (tinted in-scene). */
+  private makeSimpleTextures(): void {
+    // White tile for platforms.
+    let g = this.add.graphics();
+    g.fillStyle(0xffffff, 1).fillRect(0, 0, 16, 16);
+    g.generateTexture('tile', 16, 16);
+    g.destroy();
+
+    // Collectible treat (four-point star).
+    g = this.add.graphics();
+    g.fillStyle(0xffffff, 1);
+    const s = 22;
+    const c = s / 2;
+    g.fillTriangle(c, 0, c - 5, c, c + 5, c);
+    g.fillTriangle(c, s, c - 5, c, c + 5, c);
+    g.fillTriangle(0, c, c, c - 5, c, c + 5);
+    g.fillTriangle(s, c, c, c - 5, c, c + 5);
+    g.fillCircle(c, c, 4);
+    g.generateTexture('collectible', s, s);
+    g.destroy();
+
+    // Projectile.
+    g = this.add.graphics();
+    g.fillStyle(0xffffff, 1).fillCircle(8, 8, 7);
+    g.generateTexture('projectile', 16, 16);
+    g.destroy();
+
+    // A single spike tooth (base at bottom), tiled across hazard zones.
+    g = this.add.graphics();
+    g.fillStyle(0xffffff, 1);
+    g.fillTriangle(0, 16, 8, 0, 16, 16);
+    g.generateTexture('spike', 16, 16);
+    g.destroy();
+
+    // Exit door — a warm cat-door drawn in full colour (not tinted): stone
+    // frame, wooden slab, glowing green cat-flap arch, and a paw print.
+    g = this.add.graphics();
+    g.fillStyle(0x566c86, 1);
+    g.fillRoundedRect(0, 0, 48, 96, { tl: 22, tr: 22, bl: 0, br: 0 }); // frame
+    g.fillStyle(0x8b5a2b, 1);
+    g.fillRoundedRect(5, 5, 38, 91, { tl: 17, tr: 17, bl: 0, br: 0 }); // slab
+    g.fillStyle(0xc98c5a, 1);
+    g.fillRoundedRect(9, 9, 30, 83, { tl: 13, tr: 13, bl: 0, br: 0 }); // panel
+    g.fillStyle(0x8b5a2b, 1);
+    g.fillRoundedRect(12, 12, 24, 77, { tl: 10, tr: 10, bl: 0, br: 0 });
+    // Cat-flap arch with a green glow rim.
+    g.fillStyle(0x1a1c2c, 1);
+    g.fillRoundedRect(13, 66, 22, 30, { tl: 11, tr: 11, bl: 0, br: 0 });
+    g.lineStyle(3, 0xa7f070, 1);
+    g.strokeRoundedRect(13, 66, 22, 30, { tl: 11, tr: 11, bl: 0, br: 0 });
+    // Paw print.
+    g.fillStyle(0xa7f070, 1);
+    g.fillCircle(24, 40, 5);
+    g.fillCircle(17, 32, 2.6);
+    g.fillCircle(24, 29, 2.6);
+    g.fillCircle(31, 32, 2.6);
+    g.generateTexture('exit-door', 48, 96);
+    g.destroy();
+
+    // Checkpoint marker — a pole with a flag, tinted gray/gold in-scene.
+    // Origin is bottom-centre when placed (24x52; pole base at the bottom).
+    g = this.add.graphics();
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(10, 0, 4, 52); // pole
+    g.fillTriangle(14, 2, 14, 18, 24, 10); // flag
+    g.generateTexture('checkpoint', 24, 52);
+    g.destroy();
+
+    // UI chip — a rounded square, tinted in the HUD (cat-bar slots, panels).
+    g = this.add.graphics();
+    g.fillStyle(0xffffff, 1).fillRoundedRect(0, 0, 32, 32, 9);
+    g.generateTexture('ui-chip', 32, 32);
+    g.destroy();
+
+    // Cat face for the switch bar — tinted per cat; dark eyes survive the tint.
+    g = this.add.graphics();
+    g.fillStyle(0xffffff, 1);
+    g.fillTriangle(6, 12, 11, 1, 17, 12); // left ear
+    g.fillTriangle(26, 12, 21, 1, 15, 12); // right ear
+    g.fillRoundedRect(5, 10, 22, 19, 8); // head
+    g.fillStyle(0x14151f, 1);
+    g.fillCircle(12, 20, 2.4); // eyes
+    g.fillCircle(20, 20, 2.4);
+    g.generateTexture('cat-face', 32, 32);
+    g.destroy();
+  }
+
+  /** Generate placeholder textures for any background entry without a real src. */
+  private makeBackgroundTextures(): void {
+    for (const [key, bg] of Object.entries(BG_TEXTURES)) {
+      if (bg.src && this.textures.exists(key)) continue; // real image loaded in preload()
+      const g = this.add.graphics();
+      const gen = bg.generate;
+      switch (gen.kind) {
+        case 'sky':
+          g.fillGradientStyle(gen.top, gen.top, gen.bottom, gen.bottom, 1);
+          g.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+          g.generateTexture(key, GAME_WIDTH, GAME_HEIGHT);
+          break;
+        case 'hills': {
+          const tileW = 512;
+          const baseY = gen.height;
+          g.fillStyle(gen.color, 1);
+          g.fillRect(0, baseY - 30, tileW, 60);
+          for (let x = -64; x <= tileW + 64; x += 160) {
+            g.fillCircle(x, baseY - 30, 90);
+            g.fillCircle(x + 80, baseY - 30, 60);
+          }
+          g.generateTexture(key, tileW, gen.height);
+          break;
+        }
+        case 'solid':
+          g.fillStyle(gen.color, 1).fillRect(0, 0, 64, 64);
+          g.generateTexture(key, 64, 64);
+          break;
+        case 'panel': {
+          // Tileable wainscot paneling — white lines on transparent (tinted per
+          // theme). Left seam + a mid divider + top/bottom rails.
+          const s = 128;
+          g.fillStyle(0xffffff, 1);
+          g.fillRect(0, 0, s, 3); // top rail
+          g.fillRect(0, s - 3, s, 3); // bottom rail
+          g.fillRect(0, 0, 3, s); // left seam (tiles into the next panel)
+          g.fillRect(s / 2 - 1, 14, 2, s - 28); // vertical panel divider
+          g.generateTexture(key, s, s);
+          break;
+        }
+        case 'stripes': {
+          // Vertical wallpaper stripes — transparent between.
+          const w = 64;
+          const h = 128;
+          g.fillStyle(0xffffff, 1);
+          g.fillRect(6, 0, 6, h);
+          g.fillRect(38, 0, 6, h);
+          g.generateTexture(key, w, h);
+          break;
+        }
+        case 'tiles': {
+          // A tile grid — lines on the top/left edges so tiling forms a grid.
+          const s = 64;
+          g.fillStyle(0xffffff, 1);
+          g.fillRect(0, 0, s, 2);
+          g.fillRect(0, 0, 2, s);
+          g.generateTexture(key, s, s);
+          break;
+        }
+      }
+      g.destroy();
+    }
+  }
+}
