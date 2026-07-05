@@ -57,10 +57,6 @@ export const TUNING = {
     playerInvulnMs: 1000,
   },
 
-  enemy: {
-    speed: 70,
-  },
-
   /** Active-ability parameters. Each maps to an Ability implementation. */
   abilities: {
     dash: { speed: 720, durationMs: 160, cooldownMs: 700, groundLiftY: 120 },
@@ -107,6 +103,33 @@ export const TUNING = {
   quirks: {
     /** A continuous side-to-side rocking tremor layered over any animation. */
     wobble: { angleDeg: 9, jitterDeg: 3, speed: 5.5, jitterSpeed: 14.8 },
+  },
+
+  audio: {
+    /** Background music volume (sfx play at full; global mute covers both). */
+    musicVolume: 0.4,
+  },
+
+  /** Per-kind enemy behaviour. 'walker' is the classic patroller. */
+  enemyKinds: {
+    walker: { speed: 70 },
+    /** Hops in arcs along its patrol; flips at bounds/walls. */
+    hopper: { intervalMs: 1300, hopVx: 150, hopVy: 520, scale: 0.9, tint: 0x38b2a3 },
+    /** Patrols slowly; telegraphs, then charges when the cat is level with it. */
+    charger: {
+      patrolSpeed: 45,
+      chargeSpeed: 330,
+      telegraphMs: 450,
+      /** Horizontal detection range (px) and vertical tolerance (px). */
+      range: 260,
+      verticalTolerance: 70,
+      /** Max charge duration before giving up (ms). */
+      chargeMaxMs: 1300,
+      cooldownMs: 1100,
+      scale: 1.12,
+      tint: 0xc23c4f,
+      hp: 2,
+    },
   },
 } as const;
 

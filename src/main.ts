@@ -28,4 +28,6 @@ const config: Phaser.Types.Core.GameConfig = {
   scene: [BootScene, PreloadScene, LevelSelectScene, GameScene, UIScene, PauseScene],
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+// Dev-only handle for the smoke test / browser console. Absent in production.
+if (import.meta.env.DEV) (globalThis as unknown as { __game: Phaser.Game }).__game = game;

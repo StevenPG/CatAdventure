@@ -4,11 +4,14 @@ import { BACKGROUNDS, DEFAULT_BACKGROUND } from '../config/assets';
 import { LEVELS } from '../data/levels';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
+import { Hopper } from '../entities/Hopper';
+import { Charger } from '../entities/Charger';
 import { FlyingEnemy } from '../entities/FlyingEnemy';
 import { MovingPlatform } from '../entities/MovingPlatform';
 import { Hazard } from '../entities/Hazard';
 import { Collectible } from '../entities/Collectible';
 import { CatManager, CatEvents } from '../systems/CatManager';
+import { MusicManager } from '../systems/MusicManager';
 import { SaveManager } from '../systems/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
 import type { CatDefinition, EnemyLike, GameWorld, LevelDefinition, TouchState } from '../types';
@@ -124,6 +127,7 @@ export class GameScene extends Phaser.Scene implements GameWorld {
   private buildBackground(): void {
     const theme = BACKGROUNDS[this.level.background ?? DEFAULT_BACKGROUND] ?? BACKGROUNDS[DEFAULT_BACKGROUND];
     if (theme.baseColor !== undefined) this.cameras.main.setBackgroundColor(theme.baseColor);
+    MusicManager.play(this, this.level.music ?? theme.music ?? 'music-outdoor');
 
     theme.layers.forEach((layer, i) => {
       const depth = -100 + i;
@@ -181,8 +185,22 @@ export class GameScene extends Phaser.Scene implements GameWorld {
   }
 
   private buildExit(): void {
-    this.exit = this.physics.add.staticImage(this.level.exit.x, this.level.exit.y, 'tile');
-    this.exit.setDisplaySize(44, 88).setTint(COLORS.exit).refreshBody();
+    // A soft pulsing glow behind the door so "home" reads from a distance.
+    const glow = this.add
+      .ellipse(this.level.exit.x, this.level.exit.y + 6, 96, 130, COLORS.exit, 0.16)
+      .setDepth(0);
+    this.tweens.add({
+      targets: glow,
+      alpha: { from: 0.1, to: 0.28 },
+      scaleX: 1.12,
+      scaleY: 1.08,
+      duration: 900,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.inOut',
+    });
+    this.exit = this.physics.add.staticImage(this.level.exit.x, this.level.exit.y, 'exit-door');
+    this.exit.setDepth(1).refreshBody();
   }
 
   private buildCollectibles(): void {
@@ -231,8 +249,14 @@ export class GameScene extends Phaser.Scene implements GameWorld {
 
   private buildEnemies(): void {
     this.enemyGroup = this.physics.add.group();
+    const target = () => ({ x: this.player.sprite.x, y: this.player.sprite.y });
     for (const e of this.level.enemies) {
-      const enemy = new Enemy(this, e.x, e.y, e.patrol);
+      const enemy: EnemyLike =
+        e.kind === 'hopper'
+          ? new Hopper(this, e.x, e.y, e.patrol)
+          : e.kind === 'charger'
+            ? new Charger(this, e.x, e.y, e.patrol, target)
+            : new Enemy(this, e.x, e.y, e.patrol);
       this.enemyGroup.add(enemy.sprite);
       this.enemies.push(enemy);
     }

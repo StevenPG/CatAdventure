@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/GameConfig';
-import { BG_TEXTURES, CAT_ANIMS, ENEMY_ANIMS, SFX, SHEETS } from '../config/assets';
+import { BG_TEXTURES, CAT_ANIMS, ENEMY_ANIMS, MUSIC, SFX, SHEETS } from '../config/assets';
 import { PlaceholderFactory } from '../systems/PlaceholderFactory';
 import { CATS } from '../data/cats';
 
@@ -30,6 +30,11 @@ export class PreloadScene extends Phaser.Scene {
     for (const [key, sfx] of Object.entries(SFX)) {
       const src = sfx.src ?? PlaceholderFactory.makeTone(sfx.tone);
       this.load.audio(key, src);
+    }
+
+    // Music tracks — real file or a generated melody via the fallback pass.
+    for (const [key, music] of Object.entries(MUSIC)) {
+      if (music.src) this.load.audio(key, music.src);
     }
 
     // Real background images (if any entry has a `src`). Generated ones are
@@ -70,6 +75,12 @@ export class PreloadScene extends Phaser.Scene {
       if (this.cache.audio.exists(key)) continue;
       this.load.audio(key, PlaceholderFactory.makeTone(sfx.tone));
       console.warn(`[assets] "${sfx.src}" missing — using a synthesized tone for "${key}"`);
+      queued = true;
+    }
+    for (const [key, music] of Object.entries(MUSIC)) {
+      if (this.cache.audio.exists(key)) continue;
+      this.load.audio(key, PlaceholderFactory.makeMusic(music.gen));
+      console.warn(`[assets] "${music.src}" missing — using a generated melody for "${key}"`);
       queued = true;
     }
     // Missing background images regenerate in makeBackgroundTextures instead.
@@ -147,6 +158,31 @@ export class PreloadScene extends Phaser.Scene {
     g.fillStyle(0xffffff, 1);
     g.fillTriangle(0, 16, 8, 0, 16, 16);
     g.generateTexture('spike', 16, 16);
+    g.destroy();
+
+    // Exit door — a warm cat-door drawn in full colour (not tinted): stone
+    // frame, wooden slab, glowing green cat-flap arch, and a paw print.
+    g = this.add.graphics();
+    g.fillStyle(0x566c86, 1);
+    g.fillRoundedRect(0, 0, 48, 96, { tl: 22, tr: 22, bl: 0, br: 0 }); // frame
+    g.fillStyle(0x8b5a2b, 1);
+    g.fillRoundedRect(5, 5, 38, 91, { tl: 17, tr: 17, bl: 0, br: 0 }); // slab
+    g.fillStyle(0xc98c5a, 1);
+    g.fillRoundedRect(9, 9, 30, 83, { tl: 13, tr: 13, bl: 0, br: 0 }); // panel
+    g.fillStyle(0x8b5a2b, 1);
+    g.fillRoundedRect(12, 12, 24, 77, { tl: 10, tr: 10, bl: 0, br: 0 });
+    // Cat-flap arch with a green glow rim.
+    g.fillStyle(0x1a1c2c, 1);
+    g.fillRoundedRect(13, 66, 22, 30, { tl: 11, tr: 11, bl: 0, br: 0 });
+    g.lineStyle(3, 0xa7f070, 1);
+    g.strokeRoundedRect(13, 66, 22, 30, { tl: 11, tr: 11, bl: 0, br: 0 });
+    // Paw print.
+    g.fillStyle(0xa7f070, 1);
+    g.fillCircle(24, 40, 5);
+    g.fillCircle(17, 32, 2.6);
+    g.fillCircle(24, 29, 2.6);
+    g.fillCircle(31, 32, 2.6);
+    g.generateTexture('exit-door', 48, 96);
     g.destroy();
 
     // Checkpoint marker — a pole with a flag, tinted gray/gold in-scene.

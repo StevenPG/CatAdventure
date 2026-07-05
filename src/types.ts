@@ -122,8 +122,10 @@ export interface LevelDefinition {
   /** Background theme id (see config/assets.ts BACKGROUNDS). Defaults to
    *  'outdoor'. Use 'room' for a scrolling interior, or add your own theme. */
   background?: string;
+  /** Music key (see config/assets.ts MUSIC). Defaults to the theme's track. */
+  music?: string;
   platforms: PlatformDef[];
-  enemies: { x: number; y: number; patrol?: number }[];
+  enemies: { x: number; y: number; patrol?: number; kind?: EnemyKind }[];
   collectibles: { x: number; y: number }[];
   /** Optional: platforms that travel between two points (you can ride them). */
   movingPlatforms?: MovingPlatformDef[];
@@ -179,6 +181,11 @@ export interface FlyingEnemyDef {
   /** Path speed (px/s). Defaults to TUNING.flyingEnemy.speed. */
   speed?: number;
 }
+
+/** Ground enemy behaviours. 'walker' patrols; 'hopper' bounces along its
+ *  patrol; 'charger' telegraphs then rushes the cat. Tuning per kind lives in
+ *  TUNING.enemyKinds. */
+export type EnemyKind = 'walker' | 'hopper' | 'charger';
 
 /** Common surface for ground + flying enemies, so combat treats them alike. */
 export interface EnemyLike {

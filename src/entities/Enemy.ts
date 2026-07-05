@@ -11,7 +11,7 @@ export class Enemy {
   private readonly originX: number;
   private readonly patrolRange: number;
   private dir: 1 | -1 = 1;
-  private readonly speed = TUNING.enemy.speed;
+  private readonly speed = TUNING.enemyKinds.walker.speed;
 
   constructor(scene: Phaser.Scene, x: number, y: number, patrol = 80) {
     this.originX = x;

@@ -83,10 +83,11 @@ level's `id` and its save progress resets — ids are the key.)
 | Field          | Meaning |
 | -------------- | ------- |
 | `platforms[]`  | `{ x, y, width, height, breakable? }`. `breakable: true` makes a block a ground-slam / pound target. |
-| `enemies[]`    | `{ x, y, patrol? }`. `patrol` is how far (px) it walks each way from `x` (default 80). |
+| `enemies[]`    | `{ x, y, patrol?, kind? }`. `patrol` is how far (px) it roams each way from `x` (default 80). `kind`: `'walker'` (default), `'hopper'` (bounces in arcs), or `'charger'` (2 HP; telegraphs, then rushes the cat — happily off ledges). Tuning in `TUNING.enemyKinds`. |
 | `collectibles[]` | `{ x, y }`. A bobbing treat; counts toward the level's total. |
 | `spawn` / `exit` | Start point and the completion door. |
 | `background` | Theme id (`'outdoor'` default, `'room'`, or your own). |
+| `music` | Music key (see `MUSIC` in `src/config/assets.ts`). Defaults to the background theme's track. |
 | `movingPlatforms[]` | `{ x, y, width, height, toX, toY, speed? }`. Ping-pongs between its start (`x`,`y`) and (`toX`,`toY`); the cat is carried while riding. Horizontal, vertical, or diagonal. |
 | `hazards[]` | `{ x, y, width, height, damage? }`. A spike zone — contact costs health and knocks you back. |
 | `flyingEnemies[]` | `{ x, y, rangeX?, rangeY?, speed? }`. Gravity-free; drifts on a sine path. Stomp/swipe/shoot/slam to defeat, like any enemy. |

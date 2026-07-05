@@ -38,8 +38,11 @@ is forgiving by design. A mute toggle and the controls reference live in the
 bottom-left corner during play.
 
 Stomp enemies from above **or** hit them with attacks, projectiles, or a
-ground-slam. Collect treats. Reach the green exit to clear the level. Progress
-is saved to `localStorage`.
+ground-slam — watch for **hoppers** (bounce in arcs) and **chargers** (2 HP;
+they telegraph, then rush you). Collect treats. Reach the glowing cat-door to
+clear the level. Progress is saved to `localStorage`, and each screen has its
+own looping music (placeholder melodies — replaceable files like everything
+else).
 
 There's no game-over screen: if you run out of health or fall into a pit, the
 camera gently scrolls back to the level start — or the **last checkpoint flag

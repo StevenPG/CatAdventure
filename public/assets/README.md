@@ -72,6 +72,20 @@ so you can point a cat at a different key for a unique voice.
 
 ---
 
+## Music  → `music/`
+
+Looping background tracks — gentle generated melodies as placeholder files:
+
+`music/music-menu.wav` · `music/music-outdoor.wav` · `music/music-room.wav`
+
+**Overwrite a file to use your own music.** The audio decoder sniffs content,
+not extension, so you can drop mp3/ogg bytes under the same `.wav` name (or
+rename the file and update `MUSIC` in `src/config/assets.ts`). Each background
+theme picks its track, and a level can override with `music: '<key>'`. Volume
+lives in `TUNING.audio.musicVolume`.
+
+---
+
 ## Backgrounds  → `background/`
 
 Room and outdoor backdrops are themes (`BACKGROUNDS` in `src/config/assets.ts`).

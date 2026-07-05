@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config/GameConfig';
 import { LEVELS } from '../data/levels';
 import { SaveManager } from '../systems/SaveManager';
+import { MusicManager } from '../systems/MusicManager';
 
 const PER_ROW = 5;
 const CARD_W = 168;
@@ -21,6 +22,9 @@ const VIEW_BOTTOM = 496; // masked viewport bottom
  */
 export class LevelSelectScene extends Phaser.Scene {
   private grid!: Phaser.GameObjects.Container;
+  private cardBgs: Phaser.GameObjects.Rectangle[] = [];
+  private selected = 0;
+  private maxSelectable = 0;
   private scrollMin = 0; // most-negative container.y
   private modalOpen = false;
   private dragActive = false;
@@ -38,6 +42,7 @@ export class LevelSelectScene extends Phaser.Scene {
     this.dragMoved = false;
     const save = SaveManager.get();
     this.cameras.main.setBackgroundColor('#1a1c2c');
+    MusicManager.play(this, 'music-menu');
 
     this.add
       .text(GAME_WIDTH / 2, 44, 'CAT ADVENTURE', {
@@ -66,6 +71,9 @@ export class LevelSelectScene extends Phaser.Scene {
   private buildGrid(save: SaveManager): void {
     const startX = (GAME_WIDTH - (PER_ROW * CARD_W + (PER_ROW - 1) * GAP_X)) / 2 + CARD_W / 2;
     this.grid = this.add.container(0, 0);
+    this.cardBgs = [];
+    this.selected = 0;
+    this.maxSelectable = Math.min(LEVELS.length - 1, save.unlockedLevel);
 
     LEVELS.forEach((level, i) => {
       const col = i % PER_ROW;
@@ -115,6 +123,7 @@ export class LevelSelectScene extends Phaser.Scene {
         )
         .setOrigin(0.5);
       card.add([bg, num, title, sub]);
+      this.cardBgs.push(bg);
 
       if (unlocked) {
         bg.setInteractive({ useHandCursor: true });
@@ -160,6 +169,29 @@ export class LevelSelectScene extends Phaser.Scene {
     const rows = Math.ceil(LEVELS.length / PER_ROW);
     const contentBottom = GRID_TOP + (rows - 1) * ROW_H + CARD_H / 2;
     this.scrollMin = Math.min(0, VIEW_BOTTOM - contentBottom - 8);
+    this.refreshSelection();
+  }
+
+  /** Gold-outline the keyboard-selected card; restore the others. */
+  private refreshSelection(): void {
+    const save = SaveManager.get();
+    this.cardBgs.forEach((bg, i) => {
+      if (i === this.selected) bg.setStrokeStyle(4, 0xffcd75);
+      else bg.setStrokeStyle(3, i <= save.unlockedLevel ? 0x73eff7 : 0x566c86);
+    });
+    // Keep the selected row inside the scroll viewport.
+    if (this.scrollMin < 0) {
+      const rowY = GRID_TOP + Math.floor(this.selected / PER_ROW) * ROW_H;
+      const top = rowY + this.grid.y - CARD_H / 2;
+      const bottom = rowY + this.grid.y + CARD_H / 2;
+      if (top < VIEW_TOP + 8) this.grid.y = Phaser.Math.Clamp(VIEW_TOP + 8 + CARD_H / 2 - rowY, this.scrollMin, 0);
+      else if (bottom > VIEW_BOTTOM - 8) this.grid.y = Phaser.Math.Clamp(VIEW_BOTTOM - 8 - CARD_H / 2 - rowY, this.scrollMin, 0);
+    }
+  }
+
+  private moveSelection(delta: number): void {
+    this.selected = Phaser.Math.Clamp(this.selected + delta, 0, this.maxSelectable);
+    this.refreshSelection();
   }
 
   // --- Scrolling (wheel + drag) ---
@@ -203,7 +235,9 @@ export class LevelSelectScene extends Phaser.Scene {
   }
 
   private setupKeys(save: SaveManager): void {
-    this.input.keyboard?.on('keydown', (e: KeyboardEvent) => {
+    const kb = this.input.keyboard;
+    if (!kb) return;
+    kb.on('keydown', (e: KeyboardEvent) => {
       if (this.modalOpen) return;
       const n = e.key === '0' ? 10 : Number.parseInt(e.key, 10); // 0 = level 10
       if (Number.isNaN(n)) return;
@@ -212,13 +246,23 @@ export class LevelSelectScene extends Phaser.Scene {
         this.startLevel(index);
       }
     });
+    // Arrow keys move the selection; Enter/Space launches it.
+    const guard = (fn: () => void) => () => {
+      if (!this.modalOpen) fn();
+    };
+    kb.on('keydown-LEFT', guard(() => this.moveSelection(-1)));
+    kb.on('keydown-RIGHT', guard(() => this.moveSelection(1)));
+    kb.on('keydown-UP', guard(() => this.moveSelection(-PER_ROW)));
+    kb.on('keydown-DOWN', guard(() => this.moveSelection(PER_ROW)));
+    kb.on('keydown-ENTER', guard(() => this.startLevel(this.selected)));
+    kb.on('keydown-SPACE', guard(() => this.startLevel(this.selected)));
   }
 
   // --- Footer: controls hint + full reset ---
 
   private buildFooter(): void {
     this.add
-      .text(GAME_WIDTH / 2 - 60, GAME_HEIGHT - 20, 'Move: ← → / A D   Jump: ↑ / W / Space   Switch cat: Tab', {
+      .text(GAME_WIDTH / 2 - 60, GAME_HEIGHT - 20, 'Pick a level: ← ↑ ↓ → + Enter · number keys · or click', {
         fontFamily: 'system-ui, sans-serif',
         fontSize: '14px',
         color: '#73849c',

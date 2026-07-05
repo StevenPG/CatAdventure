@@ -96,6 +96,23 @@ export const SFX: Record<string, SfxAsset> = {
 // replace. (Clear a `src` to fall back to the synthesized tone.)
 for (const key of Object.keys(SFX)) SFX[key].src ??= `assets/sfx/${key}.wav`;
 
+// --- Background music ----------------------------------------------------------
+// Looping tracks — real files at public/assets/music/<key>.wav. Overwrite one
+// with your own audio to replace it (the decoder sniffs content, so mp3/ogg
+// bytes work even under the .wav name). If a file goes missing, a melody is
+// regenerated from `gen`.
+
+export interface MusicAsset {
+  src?: string;
+  gen: { seed: number; bpm: number; rootHz: number; minor?: boolean };
+}
+
+export const MUSIC: Record<string, MusicAsset> = {
+  'music-menu': { src: 'assets/music/music-menu.wav', gen: { seed: 7, bpm: 84, rootHz: 196 } },
+  'music-outdoor': { src: 'assets/music/music-outdoor.wav', gen: { seed: 3, bpm: 104, rootHz: 220 } },
+  'music-room': { src: 'assets/music/music-room.wav', gen: { seed: 11, bpm: 76, rootHz: 174.6, minor: true } },
+};
+
 // --- Backgrounds -------------------------------------------------------------
 // Two pieces: BG_TEXTURES declares every background image (real file via `src`,
 // else a generated placeholder), and BACKGROUNDS composes them into named
@@ -147,6 +164,8 @@ export interface BackgroundTheme {
   /** Solid colour drawn behind all layers. */
   baseColor?: number;
   layers: BackgroundLayer[];
+  /** Default looping track for levels using this theme (see MUSIC). */
+  music?: string;
 }
 
 export const DEFAULT_BACKGROUND = 'outdoor';
@@ -155,7 +174,11 @@ export const DEFAULT_BACKGROUND = 'outdoor';
  *  over it. Generic placeholders for rooms in the house — replace the pattern
  *  with real art by giving these BG_TEXTURES a `src`, or add per-room textures. */
 function room(wall: number, pattern: 'bg-panel' | 'bg-stripes' | 'bg-tiles', line: number): BackgroundTheme {
-  return { baseColor: wall, layers: [{ key: pattern, parallax: 0.6, tile: true, anchor: 'fill', tint: line }] };
+  return {
+    baseColor: wall,
+    layers: [{ key: pattern, parallax: 0.6, tile: true, anchor: 'fill', tint: line }],
+    music: 'music-room',
+  };
 }
 
 export const BACKGROUNDS: Record<string, BackgroundTheme> = {
@@ -167,6 +190,7 @@ export const BACKGROUNDS: Record<string, BackgroundTheme> = {
       { key: 'bg-hills-far', parallax: 0.2, anchor: 'bottom', height: 220 },
       { key: 'bg-hills-near', parallax: 0.45, anchor: 'bottom', height: 150 },
     ],
+    music: 'music-outdoor',
   },
 
   // House rooms (generic placeholders — swap in real art later per BG_TEXTURES).

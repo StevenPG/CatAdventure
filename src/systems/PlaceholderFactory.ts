@@ -50,7 +50,70 @@ export const PlaceholderFactory = {
     }
     return encodeWav(data, sampleRate);
   },
+
+  /** Compose a short looping placeholder music track (WAV data URI): a seeded
+   *  pentatonic melody over a simple bass line. Deterministic per options, so
+   *  each theme always gets the same tune. */
+  makeMusic(opts: { seed: number; bpm: number; rootHz: number; minor?: boolean }): string {
+    const sr = 22050;
+    const beats = 16; // four 4/4 bars, then loop
+    const secPerBeat = 60 / opts.bpm;
+    const total = Math.floor(beats * secPerBeat * sr);
+    const data = new Float32Array(total);
+    const rand = mulberry32(opts.seed);
+    // Pentatonic scale steps (semitones above the root), spanning one octave.
+    const scale = opts.minor ? [0, 3, 5, 7, 10, 12] : [0, 2, 4, 7, 9, 12];
+    const hz = (semi: number) => opts.rootHz * Math.pow(2, semi / 12);
+
+    // Bass: root/fifth on each beat, one octave down.
+    for (let b = 0; b < beats; b++) {
+      const semi = b % 4 === 2 ? 7 : 0;
+      addNote(data, sr, b * secPerBeat, secPerBeat * 0.9, hz(semi) / 2, 0.1, 'sine');
+    }
+    // Melody: eighth notes with rests, random-walking over the scale.
+    let deg = 2;
+    for (let e = 0; e < beats * 2; e++) {
+      if (rand() < 0.3) continue; // rest
+      deg = Math.max(0, Math.min(scale.length - 1, deg + Math.floor(rand() * 3) - 1));
+      const dur = rand() < 0.2 ? secPerBeat : secPerBeat / 2;
+      addNote(data, sr, e * (secPerBeat / 2), dur * 0.85, hz(scale[deg]), 0.08, 'triangle');
+    }
+    return encodeWav(data, sr);
+  },
 };
+
+/** Additively write one enveloped note into the buffer. */
+function addNote(
+  data: Float32Array,
+  sr: number,
+  startSec: number,
+  durSec: number,
+  freq: number,
+  amp: number,
+  type: 'sine' | 'triangle',
+): void {
+  const start = Math.floor(startSec * sr);
+  const len = Math.min(Math.floor(durSec * sr), data.length - start);
+  for (let i = 0; i < len; i++) {
+    const t = i / len;
+    const phase = (i / sr) * freq * Math.PI * 2;
+    const raw = type === 'sine' ? Math.sin(phase) : 2 * Math.abs(2 * ((phase / (Math.PI * 2)) % 1) - 1) - 1;
+    const env = Math.min(1, t * 20) * (1 - t) ** 1.5;
+    data[start + i] += raw * env * amp;
+  }
+}
+
+/** Tiny deterministic PRNG so each track is stable across loads. */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 // --- Sprite drawing ----------------------------------------------------------
 
